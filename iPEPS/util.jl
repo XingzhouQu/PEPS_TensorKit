@@ -52,3 +52,16 @@ function inv_sqrt(S::TensorMap)
      end
      return Sid
 end
+
+"""
+Diagnal tensorMap `S` -> `S^-1`.
+"""
+function inv(S::TensorMap)
+     Sid = deepcopy(S)
+     for (c, blk) in blocks(Sid)
+          for ii in 1:size(blk)[1]
+               block(Sid, c)[ii, ii] = one(block(S, c)[ii, ii]) / block(S, c)[ii, ii]
+          end
+     end
+     return Sid
+end
