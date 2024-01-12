@@ -11,6 +11,18 @@ struct iPEPS
         Ms = reshape(Ms, (Lx, Ly))
         return new(Ms, Lx, Ly)
     end
+    # 从 ΓΛ 形式转换为正常形式
+    function iPEPS(ipeps::iPEPSΓΛ)
+        Lx = ipeps.Lx
+        Ly = ipeps.Ly
+        Ms = Matrix{TensorMap}(undef, Lx, Ly)
+        for xx in 1:Lx, yy in 1:Ly
+            @tensor tmp[l, t, p; r, b] := ipeps[x, y].Γ[le, te, p, re, be] * sqrt(ipeps[x, y].l)[l, le] *
+                                          sqrt(ipeps[x, y].t)[t, te] * sqrt(ipeps[x, y].r)[re, r] * sqrt(ipeps[x, y].b)[be, b]
+            Ms[xx, yy] = tmp
+        end
+        return new(Ms, Lx, Ly)
+    end
 end
 
 # 内部类，从ipeps构造角矩阵和边转移矩阵
