@@ -44,7 +44,7 @@ function inv_sqrt(S::TensorMap)
 end
 
 """
-Diagnal tensorMap `S` -> `√S^`.
+Diagnal tensorMap `S` -> `√S`.
 """
 function sqrt(S::TensorKit.TensorMap)
      Sid = deepcopy(S)

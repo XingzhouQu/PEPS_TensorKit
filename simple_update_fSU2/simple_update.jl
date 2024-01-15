@@ -1,7 +1,7 @@
 function simple_update!(ipeps::iPEPSΓΛ, Dk::Int, τlis::Vector{Number})
     Nit = length(τlis)
     for (it, τ) in enumerate(τlis)
-        println("========= Simple update iteration $it / $Nit ===================")
+        println("============= Simple update iteration $it / $Nit ================")
         gates = gen_gate(τ)
         errlis = simple_update_1step!(ipeps, Dk, gates)
         println("imaginary time now = $τ, truncation error = $(maximum(errlis))")

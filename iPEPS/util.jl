@@ -56,7 +56,7 @@ end
 """
 Diagnal tensorMap `S` -> `√S^`.
 """
-function sqrt(S::TensorMap)
+function sqrt(S::TensorKit.TensorMap)
      Sid = deepcopy(S)
      for (c, blk) in blocks(Sid)
           for ii in 1:size(blk)[1]

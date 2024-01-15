@@ -21,9 +21,9 @@ function apply_proj_right!(ipeps::iPEPS, envs::iPEPSenv, projup::TensorMap, proj
     Abar = A'
 
     @tensor PTMMP[(lupD, ldnD, tχNew, bχNew); ()] :=
-        envs[x, y].transfer.r[lupDin, ldnDin, tχin, bχin] * projdn[bχin, upDin, dnDin, bχNew] *
-        Abar[ldnDin, dnDin, ldnD, tdnDin, p] * A[lupD, tupDin, p, lupDin, upDin] *
-        projup[tχNew, tχin, tupDin, tdnDin]
+        envs[x, y].transfer.r[lupDin, ldnDin, tχin, bχin] * projup[tχNew, tχin, tupDin, tdnDin] *
+        A[lupD, tupDin, p, lupDin, upDin] * Abar[ldnDin, dnDin, ldnD, tdnDin, p] *
+        projdn[bχin, upDin, dnDin, bχNew]
 
     envs[x, y].transfer.r = PTMMP
     return nothing
