@@ -20,7 +20,7 @@ function FdagF(pspace::GradedSpace)
             nothing
         end
     end
-    @tensor fdagf[p1, p4; p2, p3] := Fdag[p1, p2, a] * F[a, p3, p4]
+    @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
     return fdagf
 end
 
@@ -52,7 +52,7 @@ function FFdag(pspace::GradedSpace)
     end
     @tensor F[a; c d] := Fdagtmp'[a, b, c] * iso'[d, b]
     @tensor Fdag[d a; c] := Ftmp'[a, b, c] * iso[b, d]
-    @tensor ffdag[p1, p4; p2, p3] := F[p2, p1, a] * Fdag[a, p3, p4]
+    @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
     return ffdag
 end
 
@@ -85,7 +85,6 @@ end
 function Hubbard_gate(t::Number, U::Number)
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
     Opnd = nd(pspace)
-    Opn = n(pspace)
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
     @show space(fdagf)
