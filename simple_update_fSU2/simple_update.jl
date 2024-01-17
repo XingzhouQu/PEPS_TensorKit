@@ -1,10 +1,17 @@
-function simple_update!(ipeps::iPEPSΓΛ, Dk::Int, τlis::Vector{Number})
+include("./Models.jl")
+
+function simple_update!(ipeps::iPEPSΓΛ, para::Dict{Symbol,Any})
+    τlis = para[:τlis]
+    t = para[:t]
+    U = para[:U]
+    Dk = para[:Dk]
     Nit = length(τlis)
+    hij = Hubbard_hij(t, U)
     for (it, τ) in enumerate(τlis)
         println("============= Simple update iteration $it / $Nit ================")
-        gates = gen_gate(τ)
-        errlis = simple_update_1step!(ipeps, Dk, gates)
-        println("imaginary time now = $τ, truncation error = $(maximum(errlis))")
+        gate = exp(-τ * hij)
+        errlis = simple_update_1step!(ipeps, Dk, gate)
+        println("imaginary time now = $(sum(τlis[1:it])), truncation error = $(maximum(errlis))")
         flush(stdout)
     end
 
@@ -13,12 +20,11 @@ end
 
 
 # 一步投影
-function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap})
-    gateNN = gates[1]
+function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gateNN::TensorMap)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     # ================= 最近邻相互作用 ==============
-    errlis = Vector{Float64}(undef, 2 * Lx * Ly)
+    errlis = Vector{Float64}(undef, 2 * Lx * Ly)  # 总的 bond 数
     Nb = 1
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx

@@ -82,15 +82,11 @@ function nd(pspace::GradedSpace)
 end
 
 
-function Hubbard_gate(t::Number, U::Number)
+function Hubbard_hij(t::Number, U::Number)
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
     Opnd = nd(pspace)
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
-    @show space(fdagf)
-    @show space(ffdag)
-    @show space(Opnd ⊗ id(pspace))
-    @show space(id(pspace) ⊗ Opnd)
     gate = -t * (fdagf + ffdag) + U * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
     return gate
 end
