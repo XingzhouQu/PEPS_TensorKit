@@ -120,11 +120,11 @@ struct iPEPSΓΛ
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[lin, t, p, r, b] * ipepsΓΛ[1,1].l[l, lin]
     function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
-        A = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
-        slr = id(aspacelr)
-        stb = id(aspacetb)
-        ini = _iPEPSΓΛ(A, slr, stb)
-        fill!(γλ, ini)
+        for xx in 1:Lx, yy in 1:Ly
+            γλ[xx, yy] = _iPEPSΓΛ(TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb), 
+            id(aspacelr), id(aspacetb))
+        end
+        # fill!(γλ, ini)  # 注意：这里不能用 fill! 初始化，这样会把所有的矩阵元都对应同一个引用，改一个就是在改所有！！！
         return new(γλ, Lx, Ly)
     end
 end
@@ -218,16 +218,16 @@ end
 function getindex(ipeps::iPEPS, idx::Int, idy::Int)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipeps.Ms, idx, idy)
 end
 
 function getindex(envs::iPEPSenv, idx::Int, idy::Int)
     Lx = envs.Lx
     Ly = envs.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(envs.Envs, idx, idy)
 end
 
@@ -238,7 +238,7 @@ end
 function getindex(ipepsΓΛ::iPEPSΓΛ, idx::Int, idy::Int)
     Lx = ipepsΓΛ.Lx
     Ly = ipepsΓΛ.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipepsΓΛ.ΓΛ, idx, idy)
 end
