@@ -18,7 +18,7 @@ function main()
     ipeps = iPEPS(Ms, 2, 2)
 
     envs = iPEPSenv(ipeps)
-    χ = 10
+    χ = 20
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
 end

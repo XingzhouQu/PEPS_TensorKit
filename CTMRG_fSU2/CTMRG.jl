@@ -9,8 +9,8 @@ function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
         println("============ CTMRG iteration $it / $Nit =======================")
         # 这里的顺序可能也对优化结果有影响，可以测试
         @time for xx in 1:Lx
-            error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
-            println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
+            error_List = update_env_left_2by2!(ipeps, envs, xx, χ)
+            println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
         GC.gc()
         @time for yy in 1:Ly
@@ -19,8 +19,8 @@ function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
         end
         GC.gc()
         @time for xx in 1:Lx
-            error_List = update_env_left_2by2!(ipeps, envs, xx, χ)
-            println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
+            error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
+            println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
         GC.gc()
         @time for yy in 1:Ly
@@ -86,7 +86,8 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
     for yy in 1:Ly
-        projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x, yy, χ; dir="right")
+        # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`x-1`
+        projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x-1, yy, χ; dir="right")
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
@@ -146,7 +147,8 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
     for xx in 1:Lx
-        projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y, χ; dir="dn")
+        # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`y-1`
+        projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y-1, χ; dir="dn")
         proj_List[xx, 1] = projleft
         proj_List[xx, 2] = projright
         error_List[xx] = ϵ
