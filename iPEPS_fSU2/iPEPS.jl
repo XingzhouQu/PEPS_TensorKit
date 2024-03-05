@@ -121,8 +121,8 @@ struct iPEPSΓΛ
     function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
         for xx in 1:Lx, yy in 1:Ly
-            γλ[xx, yy] = _iPEPSΓΛ(TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb), 
-            id(aspacelr), id(aspacetb))
+            tmp = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
+            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), id(aspacelr), id(aspacetb))
         end
         # fill!(γλ, ini)  # 注意：这里不能用 fill! 初始化，这样会把所有的矩阵元都对应同一个引用，改一个就是在改所有！！！
         return new(γλ, Lx, Ly)

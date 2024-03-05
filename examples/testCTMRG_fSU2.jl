@@ -13,7 +13,8 @@ function main()
     aspacet = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
     # aspaceb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 3 // 2) => 2)
     aspaceb = aspacet
-    A = TensorMap(randn, ComplexF64, aspacel ⊗ aspacet ⊗ pspace, aspacer ⊗ aspaceb)
+    tmp = TensorMap(randn, ComplexF64, aspacel ⊗ aspacet ⊗ pspace, aspacer ⊗ aspaceb)
+    A = tmp / norm(tmp)
     Ms = [A, A, A, A]
     ipeps = iPEPS(Ms, 2, 2)
 

@@ -1,6 +1,6 @@
 using LinearAlgebra
 
-function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}; site=[1, 1])
+function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}, para::Dict{Symbol, Any}; site=[1, 1])
     x = site[1]
     y = site[2]
     vals = Vector{Number}(undef, length(Ops))
@@ -13,7 +13,7 @@ function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}; site=[
         envs[x, y].transfer.b[toB, toMbup, toMbdn, btoRB] * envs[x, y].corner.rb[btoRB, toRB]
     @tensor nrm = ψ□ψ[p, p]
     for (ii, tag) in enunerate(Ops)
-        op = get_op(tag)
+        op = get_op(tag, para)
         @tensor vals[ii] = ψ□ψ[pup, pdn] * op[pup, pdn]
     end
     rslt = Dict(Ops[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
@@ -21,11 +21,11 @@ function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}; site=[
 end
 
 
-function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}; site1=[1, 1], site2=[1, 2])
+function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{Symbol}, para::Dict{Symbol, Any}; site1=[1, 1], site2=[1, 2])
     @assert Lx >= 2 || Ly >= 2
     @assert 0.99 < norm(site1 - site2) < 1.01  # 近邻格点
     sum(site1) < sum(site2) ? nothing : site1, site2 = site2, site1
-    vals = Vector{Number}(undef, length(Ops))
+    vals = Vector{Number}(undef, length(Gates))
     x1, y1 = site1
     x2, y2 = site2
     if y2 == y1 + 1  # 横向的两个点.  顺序：CTTMMbarCTTMMbarCTTC.  这里要小心fSU2是否能正确处理交换门？
@@ -51,10 +51,10 @@ function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}; site1=
     else
         error("check input sites")
     end
-    for (ii, tag) in enunerate(Ops)
-        op = get_op(tag)
-        @tensor vals[ii] = ψ□ψ[pup1, pdn1, pup2, pdn2] * op[pup1, pup2, pdn1, pdn2]
+    for (ii, tag) in enunerate(Gates)
+        gate = get_op(tag, para)
+        @tensor vals[ii] = ψ□ψ[pup1, pdn1, pup2, pdn2] * gate[pup1, pup2, pdn1, pdn2]
     end
-    rslt = Dict(Ops[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
+    rslt = Dict(Gates[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
     return rslt
 end

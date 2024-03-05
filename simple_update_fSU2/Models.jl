@@ -87,6 +87,21 @@ function Hubbard_hij(t::Number, U::Number)
     Opnd = nd(pspace)
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
-    gate = -t * (fdagf + ffdag) + U * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
+    # 这里单点项要➗4？
+    gate = -t * (fdagf + ffdag) + (U/4) * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
     return gate
+end
+
+function get_op(tag::Symbol, para::Dict{Symbol, Any})
+    if tag == "hij"
+        return Hubbard_hij(para[:t], para[:U])
+    elseif tag == "CdagC"
+        return FdagF(para[:pspace])
+    elseif tag == "SS"
+        return 
+    elseif tag == "NN"
+        return
+    else
+        error("Unsupported tag. Check input tag or add this operator.")
+    end
 end
