@@ -10,7 +10,7 @@ function main()
     aspacel = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
     # aspacer = Rep[ℤ₂×SU₂]((0, 0) => 2, (0, 1) => 2)
     aspacer = aspacel
-    aspacet = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
+    aspacet = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1), (1 => 1))
     # aspaceb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 3 // 2) => 2)
     aspaceb = aspacet
     tmp = TensorMap(randn, ComplexF64, aspacel ⊗ aspacet ⊗ pspace, aspacer ⊗ aspaceb)

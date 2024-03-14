@@ -10,23 +10,28 @@ function main()
     para = Dict{Symbol,Any}()
     para[:t] = 1.0
     para[:U] = 8
-    para[:τlis] = [1.0, 0.8, 0.5, 0.1, 0.05, 0.04, 0.03, 0.01]
-    para[:Dk] = 15  # Dkept in the simple udate
+    para[:μ] = 0.4
+    para[:τlis] = [0.1, 0.01, 1e-3, 1e-4, 1e-5]
+    para[:Dk] = 8  # Dkept in the simple udate
     para[:pspace] = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
 
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacelr = GradedSpace{fSU₂}((0 => 1))
-    aspacetb = GradedSpace{fSU₂}((0 => 1))
+    aspacelr = GradedSpace{fSU₂}((1 // 2 => 1))
+    aspacetb = GradedSpace{fSU₂}((1 // 2 => 1))
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
-    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=ComplexF64)
+    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, para)
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
+    @show space(ipeps[1, 1])
+    @show space(ipeps[1, 2])
+    @show space(ipeps[2, 1])
+    @show space(ipeps[2, 2])
     envs = iPEPSenv(ipeps)
-    χ = 20
+    χ = 200
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
 

@@ -182,12 +182,12 @@ function iPEPS(ipeps::iPEPSΓΛ)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     Ms = Matrix{TensorMap}(undef, Lx, Ly)
-    for xx in 1:Lx, yy in 1:Ly
+    for x in 1:Lx, y in 1:Ly
         @tensor tmp[l, t, p; r, b] := ipeps[x, y].Γ[le, te, p, re, be] * sqrt(ipeps[x, y].l)[l, le] *
                                       sqrt(ipeps[x, y].t)[t, te] * sqrt(ipeps[x, y].r)[re, r] * sqrt(ipeps[x, y].b)[be, b]
-        Ms[xx, yy] = tmp
+        Ms[x, y] = tmp
     end
-    return new(Ms, Lx, Ly)
+    return iPEPS(Ms, Lx, Ly)
 end
 
 # 转换正常的iPEPS为 ΓΛ 形式，用处不大，也不知道对不对

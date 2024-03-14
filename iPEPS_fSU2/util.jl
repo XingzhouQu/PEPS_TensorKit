@@ -13,7 +13,7 @@ function rank(A::AbstractTensorMap, idx::Int64)
      idx == 1 && return typeof(codomain(A)).parameters[2]
      idx == 2 && return typeof(domain(A)).parameters[2]
 end
-rank(A::AbstractTensorMap) = rank(A, 1) + rank(A, 2)
+rank(A::AbstractTensorMap) = numind(A::AbstractTensorMap)
 
 
 """
