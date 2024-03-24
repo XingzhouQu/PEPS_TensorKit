@@ -1,6 +1,7 @@
 using MKL
 using TensorKit
 import TensorKit.×
+using JLD2
 
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
@@ -16,8 +17,8 @@ function main()
     para[:pspace] = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
 
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacelr = GradedSpace{fSU₂}((1 // 2 => 1))
-    aspacetb = GradedSpace{fSU₂}((1 // 2 => 1))
+    aspacelr = GradedSpace{fSU₂}((0 => 1), (1 // 2 => 2), (1 => 1))
+    aspacetb = GradedSpace{fSU₂}((0 => 1), (1 // 2 => 2), (1 => 1))
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
@@ -26,12 +27,12 @@ function main()
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
-    @show space(ipeps[1, 1])
-    @show space(ipeps[1, 2])
-    @show space(ipeps[2, 1])
-    @show space(ipeps[2, 2])
+    for x in 1:Lx, y in 1:Ly
+        @assert space(ipeps[x, y])[1] == space(ipeps[x, y])[4]' "ipeps[$x, $y] left and right space mismatch"
+        @assert space(ipeps[x, y])[2] == space(ipeps[x, y])[5]' "ipeps[$x, $y] top and bottom space mismatch"
+    end
     envs = iPEPSenv(ipeps)
-    χ = 200
+    χ = 10
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
 

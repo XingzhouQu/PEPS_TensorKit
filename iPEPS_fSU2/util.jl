@@ -1,5 +1,3 @@
-import Base.sqrt
-
 """
      rank(A::AbstractTensorMap) -> ::Int64
      
@@ -20,51 +18,52 @@ rank(A::AbstractTensorMap) = numind(A::AbstractTensorMap)
 Diagnal tensorMap `S` -> `√S^-1`
 """
 function inv_sqrt!(S::TensorMap)
-     for (c, blk) in blocks(S)
-          for ii in 1:size(blk)[1]
-               block(S, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
-          end
-     end
+     # for (c, blk) in blocks(S)
+     #      for ii in 1:size(blk)[1]
+     #           block(S, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
+     #      end
+     # end
+     S = inv(sqrt(S))
      return S
 end
 
 """
-Diagnal tensorMap `S` -> `√S^-1`.
-Also normalize at the same time.
+Diagnal tensorMap `S` -> `√(S^-1)`.
 """
 function inv_sqrt(S::TensorMap)
-     Sid = deepcopy(S)
-     normalize!(Sid)
-     for (c, blk) in blocks(Sid)
-          for ii in 1:size(blk)[1]
-               block(Sid, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
-          end
-     end
+     Sid = sqrt(inv(S))
+     # for (c, blk) in blocks(Sid)
+     #      for ii in 1:size(blk)[1]
+     #           block(Sid, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
+     #      end
+     # end
      return Sid
 end
 
-"""
-Diagnal tensorMap `S` -> `√S`.
-"""
-function sqrt(S::TensorKit.TensorMap)
-     Sid = deepcopy(S)
-     for (c, blk) in blocks(Sid)
-          for ii in 1:size(blk)[1]
-               block(Sid, c)[ii, ii] = sqrt(block(S, c)[ii, ii])
-          end
-     end
-     return Sid
-end
+# """
+#     sqrt(S::TensorKit.TensorMap)
 
-"""
-Diagnal tensorMap `S` -> `S^-1`.
-"""
-function inv(S::TensorMap)
-     Sid = deepcopy(S)
-     for (c, blk) in blocks(Sid)
-          for ii in 1:size(blk)[1]
-               block(Sid, c)[ii, ii] = one(block(S, c)[ii, ii]) / block(S, c)[ii, ii]
-          end
-     end
-     return Sid
-end
+# Diagnal tensorMap `S` -> `√S`.
+# """
+# function Base.sqrt(S::TensorKit.TensorMap)
+#      Sid = deepcopy(S)
+#      for (c, blk) in blocks(Sid)
+#           for ii in 1:size(blk)[1]
+#                block(Sid, c)[ii, ii] = sqrt(block(S, c)[ii, ii])
+#           end
+#      end
+#      return Sid
+# end
+
+# """
+# Diagnal tensorMap `S` -> `S^-1`.
+# """
+# function inv(S::TensorMap)
+#      Sid = deepcopy(S)
+#      for (c, blk) in blocks(Sid)
+#           for ii in 1:size(blk)[1]
+#                block(Sid, c)[ii, ii] = one(block(S, c)[ii, ii]) / block(S, c)[ii, ii]
+#           end
+#      end
+#      return Sid
+# end

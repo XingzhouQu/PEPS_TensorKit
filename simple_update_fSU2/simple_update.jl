@@ -37,19 +37,14 @@ function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gateNN::TensorMap)
         println("横向更新xx$xx, yy$yy, error=$err")
         errlis[Nb] = err
         Nb += 1
-
+    end
+    # 逐列更新纵向Bond
+    for xx in 1:Lx, yy in 1:Ly
         err = bond_proj_ud!(ipeps, xx, yy, Dk, gateNN)
         println("纵向更新xx$xx, yy$yy, error=$err")
         errlis[Nb] = err
         Nb += 1
     end
-    # 逐列更新纵向Bond
-    # for xx in 1:Lx, yy in 1:Ly
-    #     err = bond_proj_ud!(ipeps, xx, yy, Dk, gateNN)
-    #     println("纵向更新xx$xx, yy$yy, error=$err")
-    #     errlis[Nb] = err
-    #     Nb += 1
-    # end
     # TODO ============= 次近邻相互作用 =============
 
     return errlis
@@ -74,11 +69,11 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
                                     inv(ipeps[xx+1, yy].r)[re, r] * inv(ipeps[xx+1, yy].b)[be, b]
     # 更新 tensor, 注意这里要归一化
-    nrmS = norm(λnew)
+    λnew = λnew / norm(λnew)
     ipeps[xx+1, yy].Γ = Γrnew
     ipeps[xx, yy].Γ = Γlnew
-    ipeps[xx+1, yy].l = λnew / nrmS
-    ipeps[xx, yy].r = λnew / nrmS
+    ipeps[xx+1, yy].l = λnew
+    ipeps[xx, yy].r = λnew
     return err
 end
 
@@ -99,9 +94,9 @@ function bond_proj_ud!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *
                                     inv(ipeps[xx, yy].r)[re, r] * inv(ipeps[xx, yy].l)[l, le]
     # 更新 tensor, 注意这里要归一化
-    nrmS = norm(λnew)
-    ipeps[xx, yy].b = λnew / nrmS
-    ipeps[xx, yy+1].t = λnew / nrmS
+    λnew = λnew / norm(λnew)
+    ipeps[xx, yy].b = λnew
+    ipeps[xx, yy+1].t = λnew
     ipeps[xx, yy].Γ = Γunew
     ipeps[xx, yy+1].Γ = Γdnew
     return err

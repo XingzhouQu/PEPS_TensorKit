@@ -2,7 +2,7 @@
 """
 left-top corner environment tensor.
 
-Space: lt:() ← (rup, bup, rdn, bdn). 【up layer for M and dn layer for Mbar】
+return: ltfuse[(rχ, bχ); ()]
 """
 function ini_lt_corner(A::AbstractTensorMap)
     Abar = A'
@@ -19,7 +19,7 @@ end
 """
 left-bottom corner environment tensor.
 
-Space: lb:(tdn, tup) ← (rup, rdn). 【up layer for M and dn layer for Mbar】
+return: lbfuse[(tχ, rχ); ()]
 """
 function ini_lb_corner(A::AbstractTensorMap)
     Abar = A'
@@ -36,7 +36,7 @@ end
 """
 right-top corner environment tensor.
 
-Space: rt:(lup, ldn) ← (bup bdn). 【up layer for M and dn layer for Mbar】
+return: rtfuse[(lχ, bχ); ()]
 """
 function ini_rt_corner(A::AbstractTensorMap)
     Abar = A'
@@ -53,7 +53,7 @@ end
 """
 right-bottom corner environment tensor.
 
-Space: rb:(lup, ldn, tup, tdn) ← (). 【up layer for M and dn layer for Mbar】
+return: rbfuse[(); (lχ, tχ)]
 """
 function ini_rb_corner(A::AbstractTensorMap)
     Abar = A'
@@ -70,7 +70,7 @@ end
 """
 left edge transfer tensor.
 
-Return: `l::Vector{TensorMap}`. `l[i]`标记第`i`行的，从上到下
+return: tmpfuse[(tχ, bχ); (rup, rdn)]
 """
 function ini_l_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -86,7 +86,7 @@ end
 """
 right edge transfer tensor.
 
-Return: `r::Vector{TensorMap}`. `r[i]`标记第`i`行的，从上到下
+return: tmpfuse[(lup, ldn, tχ, bχ); ()]
 """
 function ini_r_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -102,7 +102,7 @@ end
 """
 top edge transfer tensor.
 
-Return: `t::Vector{TensorMap}`. `t[i]`标记第`i`行的，从上到下
+return: tmpfuse[(lχ, rχ); (bup, bdn)]
 """
 function ini_t_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -118,7 +118,7 @@ end
 """
 bottom edge transfer tensor.
 
-Return: `b::Vector{TensorMap}`. `b[i]`标记第`i`行的，从上到下
+return: tmpfuse[(lχ, tup, tdn, rχ); ()]
 """
 function ini_b_transfer(A::AbstractTensorMap)
     Abar = A'

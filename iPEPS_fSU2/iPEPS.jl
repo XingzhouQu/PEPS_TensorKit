@@ -183,8 +183,10 @@ function iPEPS(ipeps::iPEPSΓΛ)
     Ly = ipeps.Ly
     Ms = Matrix{TensorMap}(undef, Lx, Ly)
     for x in 1:Lx, y in 1:Ly
+        # println("x=$x, y=$y, space is $(space(ipeps[x, y].Γ))")
         @tensor tmp[l, t, p; r, b] := ipeps[x, y].Γ[le, te, p, re, be] * sqrt(ipeps[x, y].l)[l, le] *
                                       sqrt(ipeps[x, y].t)[t, te] * sqrt(ipeps[x, y].r)[re, r] * sqrt(ipeps[x, y].b)[be, b]
+        # tmp = ipeps[x, y].Γ * sqrt(ipeps[x, y].l) * sqrt(ipeps[x, y].t) * sqrt(ipeps[x, y].r) * sqrt(ipeps[x, y].b)
         Ms[x, y] = tmp
     end
     return iPEPS(Ms, Lx, Ly)

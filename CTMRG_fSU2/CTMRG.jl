@@ -13,14 +13,14 @@ function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
             println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
         GC.gc()
-        @time for yy in 1:Ly
-            error_List = update_env_top_2by2!(ipeps, envs, yy, χ)
-            println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
-        end
-        GC.gc()
         @time for xx in 1:Lx
             error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
             println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
+        end
+        GC.gc()
+        @time for yy in 1:Ly
+            error_List = update_env_top_2by2!(ipeps, envs, yy, χ)
+            println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
         GC.gc()
         @time for yy in 1:Ly
@@ -56,7 +56,8 @@ function update_env_left_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
     for yy in 1:Ly
-        projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x, yy, χ; dir="left")
+        # projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x, yy, χ; dir="left")
+        projup, projdn, ϵ = get_proj_update_left(ipeps, envs, x, yy, χ)
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
@@ -73,6 +74,8 @@ function update_env_left_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
             apply_proj_lbCorner_updateL!(envs, proj_List[yy, 2], x, yy)
         end
     end
+    # apply_proj_ltCorner_updateL!(envs, proj_List[Ly, 1], x, 1)
+    # apply_proj_lbCorner_updateL!(envs, proj_List[Ly, 2], x, Ly)
     # 返回误差
     return error_List
 end
@@ -87,7 +90,8 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     # ----------------- 先求proj ---------------------
     for yy in 1:Ly
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`x-1`
-        projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x-1, yy, χ; dir="right")
+        # projup, projdn, ϵ = get_proj_update_LR(ipeps, envs, x - 1, yy, χ; dir="right")
+        projup, projdn, ϵ = get_proj_update_right(ipeps, envs, x - 1, yy, χ)
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
@@ -96,14 +100,16 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     for yy in 1:Ly
         if yy == 1
             apply_proj_right!(ipeps, envs, proj_List[Ly, 2], proj_List[yy, 1], x, yy)
-            apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, 1)
-            apply_proj_rbCorner_updateR!(envs, proj_List[1, 2], x, 1)
+            apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, yy)
+            apply_proj_rbCorner_updateR!(envs, proj_List[1, 2], x, yy)
         else
             apply_proj_right!(ipeps, envs, proj_List[yy-1, 2], proj_List[yy, 1], x, yy)
             apply_proj_rtCorner_updateR!(envs, proj_List[yy-1, 1], x, yy)
             apply_proj_rbCorner_updateR!(envs, proj_List[yy, 2], x, yy)
         end
     end
+    # apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, 1)
+    # apply_proj_rbCorner_updateR!(envs, proj_List[Ly, 2], x, Ly)
     # 返回误差
     return error_List
 end
@@ -117,7 +123,8 @@ function update_env_top_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
     for xx in 1:Lx
-        projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y, χ; dir="up")
+        # projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y, χ; dir="up")
+        projleft, projright, ϵ = get_proj_update_up(ipeps, envs, xx, y, χ)
         proj_List[xx, 1] = projleft
         proj_List[xx, 2] = projright
         error_List[xx] = ϵ
@@ -126,14 +133,16 @@ function update_env_top_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     for xx in 1:Lx
         if xx == 1
             apply_proj_top!(ipeps, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
-            apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], 1, y)
-            apply_proj_rtCorner_updateT!(envs, proj_List[1, 2], 1, y)
+            apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], xx, y)
+            apply_proj_rtCorner_updateT!(envs, proj_List[1, 2], xx, y)
         else
             apply_proj_top!(ipeps, envs, proj_List[xx-1, 2], proj_List[xx, 1], xx, y)
             apply_proj_ltCorner_updateT!(envs, proj_List[xx-1, 1], xx, y)
             apply_proj_rtCorner_updateT!(envs, proj_List[xx, 2], xx, y)
         end
     end
+    # apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], 1, y)
+    # apply_proj_rtCorner_updateT!(envs, proj_List[Lx, 2], Lx, y)
     # 返回误差
     return error_List
 end
@@ -148,7 +157,9 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     # ----------------- 先求proj ---------------------
     for xx in 1:Lx
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`y-1`
-        projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y-1, χ; dir="dn")
+        # projleft, projright, ϵ = get_proj_update_UD(ipeps, envs, xx, y - 1, χ; dir="dn")
+        @show xx, y
+        projleft, projright, ϵ = get_proj_update_down(ipeps, envs, xx, y - 1, χ)
         proj_List[xx, 1] = projleft
         proj_List[xx, 2] = projright
         error_List[xx] = ϵ
@@ -157,14 +168,16 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     for xx in 1:Lx
         if xx == 1
             apply_proj_bottom!(ipeps, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
-            apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], 1, y)
-            apply_proj_rbCorner_updateB!(envs, proj_List[1, 2], 1, y)
+            apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], xx, y)
+            apply_proj_rbCorner_updateB!(envs, proj_List[1, 2], xx, y)
         else
             apply_proj_bottom!(ipeps, envs, proj_List[xx-1, 2], proj_List[xx, 1], xx, y)
             apply_proj_lbCorner_updateB!(envs, proj_List[xx-1, 1], xx, y)
             apply_proj_rbCorner_updateB!(envs, proj_List[xx, 2], xx, y)
         end
     end
+    # apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], 1, y)
+    # apply_proj_rbCorner_updateB!(envs, proj_List[Lx, 2], Lx, y)
     # 返回误差
     return error_List
 end
