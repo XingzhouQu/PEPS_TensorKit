@@ -67,3 +67,22 @@ end
 #      end
 #      return Sid
 # end
+
+function check_qn(ipeps::iPEPS, envs::iPEPSenv)
+     Lx = envs.Lx
+     Ly = envs.Ly
+     for xx in 1:Lx, yy in 1:Ly
+          @assert space(ipeps[xx, yy])[4] == space(ipeps[xx+1, yy])[1]' "iPEPS: [$xx, $yy] right ≠ [$(xx+1), $yy] left"
+          @assert space(ipeps[xx, yy])[5] == space(ipeps[xx, yy+1])[2]' "iPEPS: [$xx, $yy] bottom ≠ [$xx, $(yy+1)] top"
+
+          @assert space(envs[xx, yy].transfer.l)[1] == space(envs[xx, yy].corner.lt)[2]' "Env: [$xx, $yy] left transfer ≠ left-top corner"
+          @assert space(envs[xx, yy].transfer.l)[2] == space(envs[xx, yy].corner.lb)[1]' "Env: [$xx, $yy] left transfer ≠ left-bottom corner"
+          @assert space(envs[xx, yy].transfer.r)[3] == space(envs[xx, yy].corner.rt)[2]' "Env: [$xx, $yy] right transfer ≠ right-top corner"
+          @assert space(envs[xx, yy].transfer.r)[4] == space(envs[xx, yy].corner.rb)[2]' "Env: [$xx, $yy] right transfer ≠ right-bottom corner"
+          @assert space(envs[xx, yy].transfer.b)[1] == space(envs[xx, yy].corner.lb)[2]' "Env: [$xx, $yy] bottom transfer ≠ left-bottom corner"
+          @assert space(envs[xx, yy].transfer.b)[4] == space(envs[xx, yy].corner.rb)[1]' "Env: [$xx, $yy] bottom transfer ≠ right-bottom corner"
+          @assert space(envs[xx, yy].transfer.t)[1] == space(envs[xx, yy].corner.lt)[1]' "Env: [$xx, $yy] top transfer ≠ left-top corner"
+          @assert space(envs[xx, yy].transfer.t)[2] == space(envs[xx, yy].corner.rt)[1]' "Env: [$xx, $yy] top transfer ≠ right-top corner"
+     end
+     return nothing
+end

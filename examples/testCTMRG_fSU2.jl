@@ -16,31 +16,27 @@ function main()
     # aspaceb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 3 // 2) => 2)
     aspaceb = aspacet
 
+    aspacelr = pspace
+    aspacetb = pspace
+
     # random Initialization
     Ms = Vector{TensorMap}(undef, Lx * Ly)
     for ii in 1:Lx*Ly
-        Ms[ii] = TensorMap(randn, ComplexF64, aspacel ⊗ aspacet ⊗ pspace, aspacer ⊗ aspaceb)
+        Ms[ii] = TensorMap(randn, ComplexF64, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
         Ms[ii] = Ms[ii] / norm(Ms[ii])
     end
-    @assert Ms[1] != Ms[2]
+    # @assert Ms[1] != Ms[2]
     ipepsRI = iPEPS(Ms, Lx, Ly)
 
     # Initialization from ΓΛ 
     ipepsγλ = iPEPSΓΛ(pspace, aspacel, aspacet, Lx, Ly)
     ipepsCI = iPEPS(ipepsγλ)
 
-    @show space(ipepsRI[1, 1])
-    @show space(ipepsCI[1, 1])
+    envs = iPEPSenv(ipepsRI)
 
-    for x in 1:Lx, y in 1:Ly
-        @assert space(ipepsCI[x, y]) == space(ipepsRI[x, y])
-        @assert blocks(ipepsCI[x, y]).keys == blocks(ipepsRI[x, y]).keys
-    end
+    check_qn(ipepsCI, envs)
+    @assert envs[0, 0].transfer.l == envs[Lx, Ly].transfer.l
 
-    @show blocks(ipepsCI[1, 1]).keys
-    @show blocks(ipepsRI[1, 1]).keys
-
-    envs = iPEPSenv(ipepsCI)
     χ = 20
     Nit = 2
     CTMRG!(ipepsCI, envs, χ, Nit)

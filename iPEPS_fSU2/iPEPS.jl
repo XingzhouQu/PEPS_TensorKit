@@ -1,6 +1,5 @@
 import Base.getindex
 include("./ini_env.jl")
-include("./util.jl")
 
 struct iPEPS
     Ms::AbstractMatrix{AbstractTensorMap}
@@ -23,8 +22,9 @@ mutable struct _corner
     lb::AbstractTensorMap
     rt::AbstractTensorMap
     rb::AbstractTensorMap
-    function _corner(A::AbstractTensorMap)
-        return new(ini_lt_corner(A), ini_lb_corner(A), ini_rt_corner(A), ini_rb_corner(A))
+    function _corner(ipeps::iPEPS, x::Int, y::Int)
+        return new(ini_lt_corner(ipeps[x-1, y-1]), ini_lb_corner(ipeps[x-1, y+1]),
+            ini_rt_corner(ipeps[x+1, y-1]), ini_rb_corner(ipeps[x+1, y+1]))
     end
 end
 
@@ -33,8 +33,9 @@ mutable struct _transfer
     r::AbstractTensorMap
     t::AbstractTensorMap
     b::AbstractTensorMap
-    function _transfer(A::AbstractTensorMap)
-        return new(ini_l_transfer(A), ini_r_transfer(A), ini_t_transfer(A), ini_b_transfer(A))
+    function _transfer(ipeps::iPEPS, x::Int, y::Int)
+        return new(ini_l_transfer(ipeps[x-1, y]), ini_r_transfer(ipeps[x+1, y]),
+            ini_t_transfer(ipeps[x, y-1]), ini_b_transfer(ipeps[x, y+1]))
     end
 end
 
@@ -43,8 +44,8 @@ end
 struct _iPEPSenv
     corner::_corner
     transfer::_transfer
-    function _iPEPSenv(t::AbstractTensorMap)
-        return new(_corner(t), _transfer(t))
+    function _iPEPSenv(ipeps::iPEPS, x::Int, y::Int)
+        return new(_corner(ipeps, x, y), _transfer(ipeps, x, y))
     end
 end
 
@@ -67,8 +68,10 @@ struct iPEPSenv
         Ly = ipeps.Ly
         envs = Matrix{_iPEPSenv}(undef, Lx, Ly)
         for x in 1:Lx, y in 1:Ly
-            tensor = ipeps[x, y]
-            envs[x, y] = _iPEPSenv(tensor)
+            @show (x, y)
+            # tensor = ipeps[x, y]
+            # envs[x, y] = _iPEPSenv(tensor)
+            envs[x, y] = _iPEPSenv(ipeps, x, y)
         end
         return new(envs, Lx, Ly)
     end
@@ -115,12 +118,13 @@ struct iPEPSΓΛ
     function iPEPSΓΛ(γλ::Matrix{_iPEPSΓΛ}, Lx, Ly)
         return new(γλ, Lx, Ly)
     end
-    # 初始化 ΓΛ 形式的 iPEPS. 
+    # 初始化 ΓΛ 形式的 iPEPS. 注意左上不是对偶空间，右下的指标在对偶空间
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[l, t, p, r, bin] * ipepsΓΛ[1,1].b[bin, b]
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[lin, t, p, r, b] * ipepsΓΛ[1,1].l[l, lin]
     function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
         for xx in 1:Lx, yy in 1:Ly
+            # 这里以后可以改用randisometry初始化。现在版本randisometry有bug?
             tmp = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
             γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), id(aspacelr), id(aspacetb))
         end
@@ -244,3 +248,5 @@ function getindex(ipepsΓΛ::iPEPSΓΛ, idx::Int, idy::Int)
     idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipepsΓΛ.ΓΛ, idx, idy)
 end
+
+include("./util.jl")

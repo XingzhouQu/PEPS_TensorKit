@@ -127,6 +127,6 @@ function ini_b_transfer(A::AbstractTensorMap)
     isol = isometry(flspace, space(tmp)[1] ⊗ space(tmp)[2])
     frspace = fuse(space(tmp)[5], space(tmp)[6])
     isor = isometry(dual(frspace), space(tmp)[5] ⊗ space(tmp)[6])
-    @tensor tmpfuse[(lχ, tup, tdn, rχ); ()] := (isol[lχ, lupχin, ldnχin] * tmp[lupχin, ldnχin, tup, tdn, rupχin, rdnχin]) * isor[rχ, rupχin, rdnχin]
-    return tmpfuse
+    @tensor bfuse[(lχ, tup, tdn, rχ); ()] := (isol[lχ, lupχin, ldnχin] * tmp[lupχin, ldnχin, tup, tdn, rupχin, rdnχin]) * isor[rχ, rupχin, rdnχin]
+    return bfuse
 end

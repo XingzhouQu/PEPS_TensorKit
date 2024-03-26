@@ -17,21 +17,24 @@ function main()
     para[:pspace] = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
 
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacelr = GradedSpace{fSU₂}((0 => 1), (1 // 2 => 2), (1 => 1))
-    aspacetb = GradedSpace{fSU₂}((0 => 1), (1 // 2 => 2), (1 => 1))
+    aspacelr = GradedSpace{fSU₂}((0 => 1), (1 => 1))
+    aspacetb = GradedSpace{fSU₂}((0 => 1), (1 => 1))
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
-    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
+    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=ComplexF64)
     simple_update!(ipepsγλ, para)
+
+    @show space(ipepsγλ[1, 1].Γ)[5]
+    @show space(ipepsγλ[1, 1].b)
+    @show space(sqrt(ipepsγλ[1, 1].b))
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
-    for x in 1:Lx, y in 1:Ly
-        @assert space(ipeps[x, y])[1] == space(ipeps[x, y])[4]' "ipeps[$x, $y] left and right space mismatch"
-        @assert space(ipeps[x, y])[2] == space(ipeps[x, y])[5]' "ipeps[$x, $y] top and bottom space mismatch"
-    end
     envs = iPEPSenv(ipeps)
+    @show space(envs[1, 1].transfer.b)[1]
+    @show space(envs[1, 1].corner.lb)[2]
+    check_qn(ipeps, envs)
     χ = 10
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
