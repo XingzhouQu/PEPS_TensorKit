@@ -32,8 +32,6 @@ function main()
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
     envs = iPEPSenv(ipeps)
-    @show space(envs[1, 1].transfer.b)[1]
-    @show space(envs[1, 1].corner.lb)[2]
     check_qn(ipeps, envs)
     χ = 10
     Nit = 2

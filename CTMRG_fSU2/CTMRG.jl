@@ -10,18 +10,6 @@ function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
         # 这里的顺序可能也对优化结果有影响，可以测试
         check_qn(ipeps, envs)
         @time for xx in 1:Lx
-            error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
-            println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
-        end
-        GC.gc()
-        check_qn(ipeps, envs)
-        @time for yy in 1:Ly
-            error_List = update_env_bottom_2by2!(ipeps, envs, yy, χ)
-            println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
-        end
-        GC.gc()
-        check_qn(ipeps, envs)
-        @time for xx in 1:Lx
             error_List = update_env_left_2by2!(ipeps, envs, xx, χ)
             println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
@@ -30,6 +18,18 @@ function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
         @time for yy in 1:Ly
             error_List = update_env_top_2by2!(ipeps, envs, yy, χ)
             println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
+        end
+        GC.gc()
+        check_qn(ipeps, envs)
+        @time for xx in Lx:-1:1
+            error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
+            println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
+        end
+        GC.gc()
+        check_qn(ipeps, envs)
+        @time for yy in Ly:-1:1
+            error_List = update_env_bottom_2by2!(ipeps, envs, yy, χ)
+            println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
         GC.gc()
         check_qn(ipeps, envs)

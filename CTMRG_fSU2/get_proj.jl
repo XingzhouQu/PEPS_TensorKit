@@ -1,47 +1,3 @@
-function get_proj_update_LR(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int; kwargs...)
-    direction = get(kwargs, :dir, "left")
-
-    # Qu 上面一半  Qd 下面一半
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
-    # 复杂度最高的两步缩并
-    @tensor Qu[(); (bχL, bupDL, bdnDL, bχR, bupDR, bdnDR)] :=
-        QuL[rχin, rupD, rdnD, bχL, bupDL, bdnDL] * QuR[rχin, rupD, rdnD, bχR, bupDR, bdnDR]
-    @tensor Qd[(tχL, tupDL, tdnDL, tχR, tupDR, tdnDR); ()] :=
-        QdL[tχL, tupDL, tdnDL, rχin, rupD, rdnD] * QdR[rχin, rupD, rdnD, tχR, tupDR, tdnDR]
-
-    if direction == "left"
-        # LQ 分解. Q 是正交基  @assert Vudag * Vudag' ≈ id(codomain(Vudag))
-        Ru, Vudag = rightorth(Qu, ((1, 2, 3), (4, 5, 6)))
-        Rd, Vddag = rightorth(Qd, ((1, 2, 3), (4, 5, 6)))
-        @tensor Rud[t; b] := Ru[χL, upDL, dnDL, t] * Rd[χL, upDL, dnDL, b]
-        U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ))
-        S_inv_sqrt = inv_sqrt(S)
-        # RevdnupD = isomorphism(dual(space(Ru)[2]), space(Ru)[2])
-        # RevdndnD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
-        @tensor projup[χ, upD, dnD; toU] := (S_inv_sqrt[toV, toU] * Vdag'[toRd, toV]) * Rd[χ, upD, dnD, toRd]
-        @tensor projdn[(toV); (χ, upD, dnD)] :=
-            (S_inv_sqrt[toV, toU] * U'[toU, toRu]) * Ru[χ, upD, dnD, toRu] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
-    elseif direction == "right"
-        # QR 分解. Q 是正交基  @assert Uu' * Uu ≈ id(domain(Uu))
-        Uu, Ru = leftorth(Qu, ((1, 2, 3), (4, 5, 6)))
-        Ud, Rd = leftorth(Qd, ((1, 2, 3), (4, 5, 6)))
-        @tensor Rud[t; b] := Ru[t, χL, upDL, dnDL] * Rd[b, χL, upDL, dnDL]
-        U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ))
-        S_inv_sqrt = inv_sqrt(S)
-        # RevdnupD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
-        # RevdndnD = isomorphism(dual(space(Ru)[4]), space(Ru)[4])
-        @tensor projup[χ, upD, dnD; toU] := (S_inv_sqrt[toV, toU] * Vdag'[toRd, toV]) * Rd[toRd, χ, upD, dnD]  # ∇
-        @tensor projdn[(toV); (χL, upD, dnD)] := # Δ
-            (S_inv_sqrt[toV, toU] * U'[toU, toRu]) * Ru[toRu, χL, upD, dnD] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
-    else
-        error("kwargs for get_proj_update_LR() should be `left` or `right`")
-    end
-    return projup, projdn, ϵ
-end
-
 function get_proj_update_left(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
     # Qu 上面一半  Qd 下面一半
     QuL = get_QuL(ipeps, envs, x, y)
@@ -97,66 +53,7 @@ function get_proj_update_right(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ:
 end
 
 
-function get_proj_update_UD(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int; kwargs...)
-    direction = get(kwargs, :dir, "up")
-
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
-    # 复杂度最高的缩并
-    @tensor QL[(rχt, rχb); (rupDt, rdnDt, rupDb, rdnDb)] :=
-        QuL[rχt, rupDt, rdnDt, bχLin, bupDL, bdnDL] * QdL[bχLin, bupDL, bdnDL, rχb, rupDb, rdnDb]
-    @tensor QR[(lupDt, ldnDt, lupDb, ldnDb); (lχt, lχb)] :=
-        QuR[lχt, lupDt, ldnDt, bχin, bupD, bdnD] * QdR[lχb, lupDb, ldnDb, bχin, bupD, bdnD]
-
-    if direction == "up"
-        # LQ 分解. Q 是正交基  @assert Vldag * Vldag' ≈ id(codomain(Vldag))
-        Rl, Vldag = rightorth(QL, ((1, 3, 4), (2, 5, 6)))
-        Rr, Vrdag = rightorth(QR, ((5, 1, 2), (6, 3, 4)))
-        @tensor Rlr[l; r] := Rl[χ, upD, dnD, l] * Rr[χ, upD, dnD, r]
-        U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
-        S_inv_sqrt = inv_sqrt(S)
-        # 这里需要手动把两个QR分解出来的指标变成对偶空间
-        Revleftχ = isomorphism(dual(space(Rl)[1]), space(Rl)[1])
-        RevleftupD = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
-        RevleftdnD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
-        Revrightχ = isomorphism(dual(space(Rr)[1]), space(Rr)[1])
-        RevrightupD = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
-        RevrightdnD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
-        @tensor projleft[(toU); (χ, upD, dnD)] :=  # ▷
-            (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[χflip, upDflip, dnDflip, toRr] * Revleftχ[χflip, χ] *
-            RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
-        @tensor projright[(χ, upD, dnD); (toV)] :=  # ◁
-            (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[χflip, upDflip, dnDflip, toRl] * Revrightχ[χflip, χ] *
-            RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
-    elseif direction == "dn"
-        # QR 分解. Q 是正交基  @assert Ul' * Ul ≈ id(domain(Uu))
-        Ul, Rl = leftorth(QL, ((1, 3, 4), (2, 5, 6)))
-        Ur, Rr = leftorth(QR, ((5, 1, 2), (6, 3, 4)))
-        @tensor Rlr[l; r] := Rl[l, χ, upDL, dnDL] * Rr[r, χ, upDL, dnDL]
-        U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
-        S_inv_sqrt = inv_sqrt(S)
-
-        Revleftχ = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
-        RevleftupD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
-        RevleftdnD = isomorphism(dual(space(Rl)[4]), space(Rl)[4])
-        Revrightχ = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
-        RevrightupD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
-        RevrightdnD = isomorphism(dual(space(Rr)[4]), space(Rr)[4])
-        @tensor projleft[(toU); (χ, upD, dnD)] := # ▷
-            (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[toRr, χflip, upDflip, dnDflip] * Revleftχ[χflip, χ] *
-            RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
-        @tensor projright[(χ, upD, dnD); (toV)] := # ◁
-            (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[toRl, χflip, upDflip, dnDflip] * Revrightχ[χflip, χ] *
-            RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
-    else
-        error("kwargs for get_proj_update_UD() should be `up` or `dn`")
-    end
-    return projleft, projright, ϵ
-end
-
-function get_proj_update_down(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+function get_proj_update_up(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
     QuL = get_QuL(ipeps, envs, x, y)
     QuR = get_QuR(ipeps, envs, x + 1, y)
     QdL = get_QdL(ipeps, envs, x, y + 1)
@@ -174,23 +71,26 @@ function get_proj_update_down(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
     S_inv_sqrt = inv_sqrt(S)
     # 这里需要手动把两个QR分解出来的指标变成对偶空间
-    Revleftχ = isomorphism(dual(space(Rl)[1]), space(Rl)[1])
-    RevleftupD = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
-    RevleftdnD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
-    Revrightχ = isomorphism(dual(space(Rr)[1]), space(Rr)[1])
-    RevrightupD = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
-    RevrightdnD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
-    @tensor projleft[(toU); (χ, upD, dnD)] :=  # ▷
-        (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[χflip, upDflip, dnDflip, toRr] * Revleftχ[χflip, χ] *
-        RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
-    @tensor projright[(χ, upD, dnD); (toV)] :=  # ◁
-        (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[χflip, upDflip, dnDflip, toRl] * Revrightχ[χflip, χ] *
-        RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
+    # Revleftχ = isomorphism(dual(space(Rl)[1]), space(Rl)[1])
+    # RevleftupD = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
+    # RevleftdnD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
+    # Revrightχ = isomorphism(dual(space(Rr)[1]), space(Rr)[1])
+    # RevrightupD = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
+    # RevrightdnD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
+    # @tensor projleft[(toU); (χ, upD, dnD)] :=  # ▷
+    #     (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[χflip, upDflip, dnDflip, toRr] * Revleftχ[χflip, χ] *
+    #     RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
+    # @tensor projright[(χ, upD, dnD); (toV)] :=  # ◁
+    #     (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[χflip, upDflip, dnDflip, toRl] * Revrightχ[χflip, χ] *
+    #     RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
+
+    @tensor projleft[(toU); (χ, upD, dnD)] := S_inv_sqrt[toV, toU] * Vdag'[toRr, toV] * Rr[χ, upD, dnD, toRr]  # ▷
+    @tensor projright[(χ, upD, dnD); (toV)] := S_inv_sqrt[toV, toU] * U'[toU, toRl] * Rl[χ, upD, dnD, toRl]  # ◁
 
     return projleft, projright, ϵ
 end
 
-function get_proj_update_up(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+function get_proj_update_down(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
     QuL = get_QuL(ipeps, envs, x, y)
     QuR = get_QuR(ipeps, envs, x + 1, y)
     QdL = get_QdL(ipeps, envs, x, y + 1)
@@ -208,18 +108,21 @@ function get_proj_update_up(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::In
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
     S_inv_sqrt = inv_sqrt(S)
 
-    Revleftχ = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
-    RevleftupD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
-    RevleftdnD = isomorphism(dual(space(Rl)[4]), space(Rl)[4])
-    Revrightχ = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
-    RevrightupD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
-    RevrightdnD = isomorphism(dual(space(Rr)[4]), space(Rr)[4])
-    @tensor projleft[(toU); (χ, upD, dnD)] := # ▷
-        (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[toRr, χflip, upDflip, dnDflip] * Revleftχ[χflip, χ] *
-        RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
-    @tensor projright[(χ, upD, dnD); (toV)] := # ◁
-        (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[toRl, χflip, upDflip, dnDflip] * Revrightχ[χflip, χ] *
-        RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
+    # Revleftχ = isomorphism(dual(space(Rl)[2]), space(Rl)[2])
+    # RevleftupD = isomorphism(dual(space(Rl)[3]), space(Rl)[3])
+    # RevleftdnD = isomorphism(dual(space(Rl)[4]), space(Rl)[4])
+    # Revrightχ = isomorphism(dual(space(Rr)[2]), space(Rr)[2])
+    # RevrightupD = isomorphism(dual(space(Rr)[3]), space(Rr)[3])
+    # RevrightdnD = isomorphism(dual(space(Rr)[4]), space(Rr)[4])
+    # @tensor projleft[(toU); (χ, upD, dnD)] := # ▷
+    #     (S_inv_sqrt[toV, toU] * Vdag'[toRr, toV]) * Rl[toRr, χflip, upDflip, dnDflip] * Revleftχ[χflip, χ] *
+    #     RevleftupD[upDflip, upD] * RevleftdnD[dnDflip, dnD]
+    # @tensor projright[(χ, upD, dnD); (toV)] := # ◁
+    #     (S_inv_sqrt[toV, toU] * U'[toU, toRl]) * Rr[toRl, χflip, upDflip, dnDflip] * Revrightχ[χflip, χ] *
+    #     RevrightupD[upDflip, upD] * RevrightdnD[dnDflip, dnD]
+
+    @tensor projleft[(toU); (χ, upD, dnD)] := S_inv_sqrt[toV, toU] * Vdag'[toRr, toV] * Rr[toRr, χ, upD, dnD]  # ▷
+    @tensor projright[(χ, upD, dnD); (toV)] := S_inv_sqrt[toV, toU] * U'[toU, toRl] * Rl[toRl, χ, upD, dnD]  # ◁
 
     return projleft, projright, ϵ
 end

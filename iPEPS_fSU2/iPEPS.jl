@@ -68,9 +68,6 @@ struct iPEPSenv
         Ly = ipeps.Ly
         envs = Matrix{_iPEPSenv}(undef, Lx, Ly)
         for x in 1:Lx, y in 1:Ly
-            @show (x, y)
-            # tensor = ipeps[x, y]
-            # envs[x, y] = _iPEPSenv(tensor)
             envs[x, y] = _iPEPSenv(ipeps, x, y)
         end
         return new(envs, Lx, Ly)
@@ -100,8 +97,8 @@ end
 
 
 """
-内部构造方法：\n
-`ipepsΓΛ =  iPEPSΓΛ(ipeps::iPEPS)`
+构造方法：\n
+`ipepsΓΛ =  iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)`
 
 用法：\n
 `ipepsΓΛ[x, y].Γ  →  Γ`
@@ -109,6 +106,12 @@ end
 `ipepsΓΛ[x, y].r`
 `ipepsΓΛ[x, y].t`
 `ipepsΓΛ[x, y].b`
+
+    ——————>  x
+    |
+    |
+    v
+     y 
 """
 struct iPEPSΓΛ
     ΓΛ::Matrix{_iPEPSΓΛ}
