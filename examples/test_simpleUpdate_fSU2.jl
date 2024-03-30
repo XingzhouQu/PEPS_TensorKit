@@ -1,7 +1,7 @@
-using MKL
+# using MKL
 using TensorKit
 import TensorKit.×
-using JLD2
+# using JLD2
 
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
@@ -17,8 +17,8 @@ function main()
     para[:pspace] = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
 
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacelr = GradedSpace{fSU₂}((0 => 1), (1 => 1))
-    aspacetb = GradedSpace{fSU₂}((0 => 1), (1 => 1))
+    aspacelr = GradedSpace{fSU₂}((0 => 1))
+    aspacetb = GradedSpace{fSU₂}((0 => 1))
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
@@ -33,7 +33,7 @@ function main()
     ipeps = iPEPS(ipepsγλ)
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
-    χ = 10
+    χ = 100
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
 
