@@ -1,28 +1,7 @@
 """
-     rank(A::AbstractTensorMap) -> ::Int64
-     
-Return the rank of a given tensor.
-
-     rank(A::AbstractTensorMap, idx::Int64) -> ::Int64
-Return the rank corresponding to codomain (`idx = 1`) or domain (`idx = 2`). 
-"""
-function rank(A::AbstractTensorMap, idx::Int64)
-     @assert idx ∈ [1, 2]
-     idx == 1 && return typeof(codomain(A)).parameters[2]
-     idx == 2 && return typeof(domain(A)).parameters[2]
-end
-rank(A::AbstractTensorMap) = numind(A::AbstractTensorMap)
-
-
-"""
 Diagnal tensorMap `S` -> `√S^-1`
 """
 function inv_sqrt!(S::TensorMap)
-     # for (c, blk) in blocks(S)
-     #      for ii in 1:size(blk)[1]
-     #           block(S, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
-     #      end
-     # end
      S = inv(sqrt(S))
      return S
 end

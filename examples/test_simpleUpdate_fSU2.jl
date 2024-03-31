@@ -6,6 +6,7 @@ import TensorKit.×
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
 include("../simple_update_fSU2/simple_update.jl")
+include("../Cal_Obs_fSU2/Cal_Obs.jl")
 
 function main()
     para = Dict{Symbol,Any}()
@@ -36,12 +37,14 @@ function main()
     χ = 100
     Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
+    check_qn(ipeps, envs)
 
     # 计算观测量
+    println("============== Calculating Obs ====================")
     E_bond1 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[1, 2])
     E_bond2 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[2, 1])
-    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[2, 1], site2=[2, 2])
-    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 2], site2=[2, 2])
+    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[2, 1], site2=[2, 2])
+    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[1, 2], site2=[2, 2])
 
     @show E_bond1, E_bond2, E_bond3, E_bond4
     @show (E_bond1 + E_bond2 + E_bond3 + E_bond4) / 4

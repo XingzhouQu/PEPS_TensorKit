@@ -110,13 +110,6 @@ function get_QuL(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     M = ipeps[x, y]
     Mbar = M'
 
-    # @tensor CTr[bχ, rχ, bupD, bdnD] := Tr[rχin, rχ, bupD, bdnD] * C[rχin, bχ]
-    # @tensor CTrTb[rχ, bupD, bdnD, rupD, rdnD, bχ] := CTr[bχin, rχ, bupD, bdnD] * Tb[bχin, bχ, rupD, rdnD]
-    # @tensor CTrTbM[rχ, bχ, rupMD, bupMD, rupD, rdnD, p] :=
-    #     CTrTb[rχ, bupDin, rupD, rupDin, rdnD, bχ] * M[rupDin, bupDin, p, rupMD, bupMD]
-    # @tensor CTrTbMMbar[(); (rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
-    #     CTrTbM[rχ, bχ, rupMD, bupMD, rupD, rdnD, p] * Mbar[rdnMD, bdnMD, rdnD, rupD, p]
-
     @tensor CTtTlMMbar[(); (rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
         Tt[rχin, rχ, bupDin, rupD] * C[rχin, bχin] * Tl[bχin, bχ, rupDin, rdnD] *
         M[rupDin, bupDin, p, rupMD, bupMD] * Mbar[rdnMD, bdnMD, rdnD, rupD, p]
@@ -130,13 +123,6 @@ function get_QuR(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     Tr = envs[x, y].transfer.r
     M = ipeps[x, y]
     Mbar = M'
-
-    # @tensor CTl[lχ, bχ, bupD, bdnD] := C[lχin, bχ] * Tl[lχ, lχin, bupD, bdnD]
-    # @tensor CTlTb[lχ, lupD, ldnD, bχ, bupD, bdnD] := CTl[lχ, bχin, bupD, bdnD] * Tb[lupD, ldnD, bχin, bχ]
-    # @tensor CTlTbM[lχ, lupD, ldnD, bχ, bupD, bdnD, p] :=
-    #     CTlTb[lχ, lupDin, ldnD, bχ, bupDin, bdnD] * M[lupD, bupDin, p, lupDin, bupD]
-    # @tensor CTlTbMMbar[lχ, lupD, ldnD; bχ, bupD, bdnD] :=
-    #     CTlTbM[lχ, lupD, ldnDin, bχ, bupD, bdnDin, p] * Mbar[ldnDin, bdnD, ldnD, bdnDin, p]
 
     @tensor CTtTrMMbar[lχ, lupD, ldnD; bχ, bupD, bdnD] :=
         C[lχin, bχin] * Tt[lχ, lχin, bupDin, bdnDin] * Tr[lupDin, ldnDin, bχin, bχ] *
@@ -152,13 +138,6 @@ function get_QdL(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     M = ipeps[x, y]
     Mbar = M'
 
-    # @tensor CTl[tχ, rχ, rupD, rdnD] := C[tχin, rχ] * Tl[tχ, tχin, rupD, rdnD]
-    # @tensor CTlTb[tχ, rupD, rdnD, rχ, tupD, tdnD] := CTl[tχ, rχin, rupD, rdnD] * Tb[rχin, tupD, tdnD, rχ]
-    # @tensor CTlTbMbar[tχ, rupD, rdnD, rχ, tupD, tdnD, p] :=
-    #     CTlTb[tχ, rupD, rdnDin, rχ, tupD, tdnDin] * Mbar[rdnD, tdnDin, rdnDin, tdnD, p]
-    # @tensor CTlTbMbarM[tχ, tupD, tdnD; rχ, rupD, rdnD] :=
-    #     CTlTbMbar[tχ, rupDin, rdnD, rχ, tupDin, tdnD, p] * M[rupDin, tupD, p, rupD, tupDin]
-
     @tensor CTlTbMbarM[tχ, tupD, tdnD; rχ, rupD, rdnD] :=
         C[tχin, rχin] * Tl[tχ, tχin, rupDin, rdnDin] * Tb[rχin, tupDin, tdnDin, rχ] *
         Mbar[rdnD, tdnDin, rdnDin, tdnD, p] * M[rupDin, tupD, p, rupD, tupDin]
@@ -172,13 +151,6 @@ function get_QdR(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     Tb = envs[x, y].transfer.b
     M = ipeps[x, y]
     Mbar = M'
-
-    # @tensor CTr[lχ, tχ, lupD, ldnD] := C[lχ, tχin] * Tr[lupD, ldnD, tχ, tχin]
-    # @tensor CTrTb[tχ, lupD, ldnD, lχ, tupD, tdnD] := CTr[lχin, tχ, lupD, ldnD] * Tb[lχ, tupD, tdnD, lχin]
-    # @tensor CTrTbMbar[tχ, lupD, ldnD, lχ, tupD, tdnD, p] :=
-    #     CTrTb[tχ, lupD, ldnDin, lχ, tupD, tdnDin] * Mbar[ldnDin, tdnDin, ldnD, tdnD, p]
-    # @tensor CTrTbMbarM[(lχ, lupD, ldnD, tχ, tupD, tdnD); ()] :=
-    #     CTrTbMbar[tχ, lupMDin, ldnD, lχ, tupDin, tdnD, p] * M[lupD, tupD, p, lupMDin, tupDin]
 
     @tensor CTrTbMbarM[(lχ, lupD, ldnD, tχ, tupD, tdnD); ()] :=
         C[lχin, tχin] * Tr[lupMDin, ldnDin, tχ, tχin] * Tb[lχ, tupDin, tdnDin, lχin] *

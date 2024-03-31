@@ -75,9 +75,6 @@ function update_env_left_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
             apply_proj_lbCorner_updateL!(envs, proj_List[yy, 2], x, yy)
         end
     end
-    # apply_proj_ltCorner_updateL!(envs, proj_List[Ly, 1], x, 1)
-    # apply_proj_lbCorner_updateL!(envs, proj_List[Ly, 2], x, Ly)
-    # 返回误差
     return error_List
 end
 
@@ -108,9 +105,6 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
             apply_proj_rbCorner_updateR!(envs, proj_List[yy, 2], x, yy)
         end
     end
-    # apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, 1)
-    # apply_proj_rbCorner_updateR!(envs, proj_List[Ly, 2], x, Ly)
-    # 返回误差
     return error_List
 end
 
@@ -140,9 +134,6 @@ function update_env_top_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
             apply_proj_rtCorner_updateT!(envs, proj_List[xx, 2], xx, y)
         end
     end
-    # apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], 1, y)
-    # apply_proj_rtCorner_updateT!(envs, proj_List[Lx, 2], Lx, y)
-    # 返回误差
     return error_List
 end
 
@@ -173,8 +164,5 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
             apply_proj_rbCorner_updateB!(envs, proj_List[xx, 2], xx, y)
         end
     end
-    # apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], 1, y)
-    # apply_proj_rbCorner_updateB!(envs, proj_List[Lx, 2], Lx, y)
-    # 返回误差
     return error_List
 end

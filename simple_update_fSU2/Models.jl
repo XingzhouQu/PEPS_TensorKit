@@ -64,7 +64,7 @@ function Hubbard_hij(t::Number, U::Number, μ::Number)
     return gate
 end
 
-function get_op(tag::Symbol, para::Dict{Symbol,Any})
+function get_op(tag::String, para::Dict{Symbol,Any})
     if tag == "hij"
         return Hubbard_hij(para[:t], para[:U], para[:μ])
     elseif tag == "CdagC"
