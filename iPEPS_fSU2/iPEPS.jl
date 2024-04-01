@@ -124,7 +124,7 @@ struct iPEPSΓΛ
     # 初始化 ΓΛ 形式的 iPEPS. 注意左上不是对偶空间，右下的指标在对偶空间
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[l, t, p, r, bin] * ipepsΓΛ[1,1].b[bin, b]
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[lin, t, p, r, b] * ipepsΓΛ[1,1].l[l, lin]
-    function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)
+    function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=Float64)
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
         for xx in 1:Lx, yy in 1:Ly
             # 这里以后可以改用randisometry初始化。现在版本randisometry有bug?

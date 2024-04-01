@@ -20,7 +20,8 @@ function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}, para::
 end
 
 
-function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any}; site1::Vector{Int}, site2::Vector{Int})
+function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any};
+    site1::Vector{Int}, site2::Vector{Int}, get_op::Function)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     @assert Lx >= 2 || Ly >= 2

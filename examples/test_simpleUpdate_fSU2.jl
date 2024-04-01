@@ -5,6 +5,7 @@ import TensorKit.×
 
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
+include("../models/Hubbard.jl")
 include("../simple_update_fSU2/simple_update.jl")
 include("../Cal_Obs_fSU2/Cal_Obs.jl")
 
@@ -24,11 +25,7 @@ function main()
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=ComplexF64)
-    simple_update!(ipepsγλ, para)
-
-    @show space(ipepsγλ[1, 1].Γ)[5]
-    @show space(ipepsγλ[1, 1].b)
-    @show space(sqrt(ipepsγλ[1, 1].b))
+    simple_update!(ipepsγλ, Hubbard_hij, para)
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
@@ -41,13 +38,13 @@ function main()
 
     # 计算观测量
     println("============== Calculating Obs ====================")
-    E_bond1 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[1, 2])
-    E_bond2 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[2, 1])
-    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[2, 1], site2=[2, 2])
-    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[1, 2], site2=[2, 2])
+    E_bond1 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[1, 2], get_op=get_op_Hubbard)
+    E_bond2 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[2, 1], get_op=get_op_Hubbard)
+    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[2, 1], site2=[2, 2], get_op=get_op_Hubbard)
+    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[1, 2], site2=[2, 2], get_op=get_op_Hubbard)
 
     @show E_bond1, E_bond2, E_bond3, E_bond4
-    @show (E_bond1 + E_bond2 + E_bond3 + E_bond4) / 4
+    @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 4
 end
 
 main()

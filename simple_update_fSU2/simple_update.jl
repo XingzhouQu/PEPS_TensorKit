@@ -1,13 +1,8 @@
-include("./Models.jl")
-
-function simple_update!(ipeps::iPEPSΓΛ, para::Dict{Symbol,Any})
+function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,Any})
     τlis = para[:τlis]
-    t = para[:t]
-    U = para[:U]
     Dk = para[:Dk]
-    μ = para[:μ]
     Nit = length(τlis)
-    hij = Hubbard_hij(t, U, μ)
+    hij = HamFunc(para)
     for (it, τ) in enumerate(τlis)
         println("============= Simple update iteration $it / $Nit ================")
         gate = exp(-τ * hij)
@@ -63,7 +58,7 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[(toX, pl, pr); (toY)] := vl[toX, plin, toV] * ipeps[xx, yy].r[toV, toW] * gateNN[pl, pr, plin, prin] *
                                          wr[toW, prin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=SVD())
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
     @tensor Γlnew[l, t, p; r, b] := Xl[le, te, be, toX] * vnew[toX, p, r] *
                                     inv(ipeps[xx, yy].l)[l, le] * inv(ipeps[xx, yy].t)[t, te] * inv(ipeps[xx, yy].b)[be, b]
     @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
@@ -88,7 +83,7 @@ function bond_proj_ud!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[toX, pu, pd; toY] := vu[toX, puin, toV] * ipeps[xx, yy].b[toV, toW] * gateNN[pu, pd, puin, pdin] *
                                      wd[toW, pdin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=SVD())
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
     @tensor Γdnew[l, t, p; r, b] := Yd[toY, le, re, be] * wnew[t, p, toY] *
                                     inv(ipeps[xx, yy+1].l)[l, le] * inv(ipeps[xx, yy+1].r)[re, r] * inv(ipeps[xx, yy+1].b)[be, b]
     @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *

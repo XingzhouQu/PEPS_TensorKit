@@ -16,7 +16,9 @@ function SS(pspace::GradedSpace)
     aspace = GradedSpace{fSU₂}((1 => 1))
     SL = TensorMap(ones, Float64, pspace, pspace ⊗ aspace) * sqrt(3) / 2
     SR = permute(SL', ((2, 1), (3,)))
-    SL, SR
+
+    @tensor SS[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
+    return SS
 end
 
 # hopping term, FdagF
@@ -52,7 +54,10 @@ function FFdag(pspace::GradedSpace)
 end
 
 
-function Hubbard_hij(t::Number, U::Number, μ::Number)
+function Hubbard_hij(para::Dict{Symbol,Any})
+    t = para[:t]
+    U = para[:U]
+    μ = para[:μ]
     pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
     Opnd = nd(pspace)
     fdagf = FdagF(pspace)
@@ -64,7 +69,7 @@ function Hubbard_hij(t::Number, U::Number, μ::Number)
     return gate
 end
 
-function get_op(tag::String, para::Dict{Symbol,Any})
+function get_op_Hubbard(tag::String, para::Dict{Symbol,Any})
     if tag == "hij"
         return Hubbard_hij(para[:t], para[:U], para[:μ])
     elseif tag == "CdagC"

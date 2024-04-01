@@ -1,51 +1,29 @@
 """
-Diagnal tensorMap `S` -> `√S^-1`
+Modified form TensorKit/src/tensors/linalg.jl
+
+TensorMap `S` -> `S^-1`.
+Also normalize by the largest number.
 """
-function inv_sqrt!(S::TensorMap)
-     S = inv(sqrt(S))
-     return S
+function inv_normalize(t::AbstractTensorMap)
+     nrm = one(eltype(t))
+     cod = codomain(t)
+     dom = domain(t)
+     for c in union(blocksectors(cod), blocksectors(dom))
+          blockdim(cod, c) == blockdim(dom, c) ||
+               throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+     end
+     if sectortype(t) === Trivial
+          return TensorMap(inv(block(t, Trivial())), domain(t) ← codomain(t))
+     else
+          data = empty(t.data)
+          for (c, b) in blocks(t)
+               data[c] = inv(b)
+               tmp = maximum(data[c])
+               tmp > nrm ? (nrm = tmp) : nothing
+          end
+          return TensorMap(data, domain(t) ← codomain(t)) / nrm
+     end
 end
-
-"""
-Diagnal tensorMap `S` -> `√(S^-1)`.
-"""
-function inv_sqrt(S::TensorMap)
-     Sid = sqrt(inv(S))
-     # for (c, blk) in blocks(Sid)
-     #      for ii in 1:size(blk)[1]
-     #           block(Sid, c)[ii, ii] = sqrt(one(block(S, c)[ii, ii]) / block(S, c)[ii, ii])
-     #      end
-     # end
-     return Sid
-end
-
-# """
-#     sqrt(S::TensorKit.TensorMap)
-
-# Diagnal tensorMap `S` -> `√S`.
-# """
-# function Base.sqrt(S::TensorKit.TensorMap)
-#      Sid = deepcopy(S)
-#      for (c, blk) in blocks(Sid)
-#           for ii in 1:size(blk)[1]
-#                block(Sid, c)[ii, ii] = sqrt(block(S, c)[ii, ii])
-#           end
-#      end
-#      return Sid
-# end
-
-# """
-# Diagnal tensorMap `S` -> `S^-1`.
-# """
-# function inv(S::TensorMap)
-#      Sid = deepcopy(S)
-#      for (c, blk) in blocks(Sid)
-#           for ii in 1:size(blk)[1]
-#                block(Sid, c)[ii, ii] = one(block(S, c)[ii, ii]) / block(S, c)[ii, ii]
-#           end
-#      end
-#      return Sid
-# end
 
 
 """
