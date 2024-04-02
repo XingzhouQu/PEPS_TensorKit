@@ -1,11 +1,12 @@
+using LinearAlgebra
 """
 Modified form TensorKit/src/tensors/linalg.jl
 
-TensorMap `S` -> `S^-1`.
-Also normalize by the largest number.
+TensorMap `S` -> `√S^-1`.
+For diag matrix only.
 """
-function inv_normalize(t::AbstractTensorMap)
-     nrm = one(eltype(t))
+function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
+     TP = eltype(t)
      cod = codomain(t)
      dom = domain(t)
      for c in union(blocksectors(cod), blocksectors(dom))
@@ -13,15 +14,26 @@ function inv_normalize(t::AbstractTensorMap)
                throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
      end
      if sectortype(t) === Trivial
-          return TensorMap(inv(block(t, Trivial())), domain(t) ← codomain(t))
+          tp = zeros(TP, size(block(t, Trivial())))
+          for ii in 1:size(tp, 1)
+               tmp = sqrt(one(TP) / block(t, Trivial())[ii, ii])
+               tmp > truncErr ? tp[ii, ii] = tmp : nothing
+          end
+          rslt = TensorMap(tp, domain(t) ← codomain(t))
+          return rslt / norm(rslt)
      else
           data = empty(t.data)
           for (c, b) in blocks(t)
-               data[c] = inv(b)
-               tmp = maximum(data[c])
-               tmp > nrm ? (nrm = tmp) : nothing
+               @assert size(b, 1) == size(b, 2) "data should be square matrix?"
+               bp = zeros(TP, size(b))
+               for ii in 1:size(b, 1)
+                    tmp = sqrt(one(TP) / b[ii, ii])
+                    tmp > truncErr ? bp[ii, ii] = tmp : nothing
+               end
+               data[c] = bp
           end
-          return TensorMap(data, domain(t) ← codomain(t)) / nrm
+          rslt = TensorMap(data, domain(t) ← codomain(t))
+          return rslt / norm(rslt)
      end
 end
 

@@ -14,11 +14,10 @@ function get_proj_update_left(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::
     Ru, Vudag = rightorth(Qu, ((1, 2, 3), (4, 5, 6)))
     Rd, Vddag = rightorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[χL, upDL, dnDL, t] * Rd[χL, upDL, dnDL, b]
-    U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ))
-    S = S / norm(S)
-    @show maximum(convert(Array, S))
-    # S_inv_sqrt = inv_sqrt(S)
-    S_inv = inv_normalize(S)
+    U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())  # SVD() is more stable
+    # S = S / maximum(convert(Array, S))
+    S_inv = inv(S / norm(S))
+    S_inv = S_inv / norm(S_inv)
     @show maximum(convert(Array, S_inv))
     # RevdnupD = isomorphism(dual(space(Ru)[2]), space(Ru)[2])
     # RevdndnD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
@@ -44,9 +43,10 @@ function get_proj_update_right(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ:
     Uu, Ru = leftorth(Qu, ((1, 2, 3), (4, 5, 6)))
     Ud, Rd = leftorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[t, χL, upDL, dnDL] * Rd[b, χL, upDL, dnDL]
-    U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ))
-    S = S / norm(S)
-    S_inv = inv_normalize(S)
+    U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
+    # S = S / maximum(convert(Array, S))
+    S_inv = inv(S / norm(S))
+    S_inv = S_inv / norm(S_inv)
     # RevdnupD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
     # RevdndnD = isomorphism(dual(space(Ru)[4]), space(Ru)[4])
     @tensor projup[χ, upD, dnD; toU] := (S_inv[toV, toU] * Vdag'[toRd, toV]) * Rd[toRd, χ, upD, dnD]  # ∇
@@ -72,9 +72,10 @@ function get_proj_update_top(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::I
     Rl, Vldag = rightorth(QL, ((1, 2, 3), (4, 5, 6)))
     Rr, Vrdag = rightorth(QR, ((1, 2, 3), (4, 5, 6)))
     @tensor Rlr[l; r] := Rl[χ, upD, dnD, l] * Rr[χ, upD, dnD, r]
-    U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
-    S = S / norm(S)
-    S_inv = inv_normalize(S)
+    U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
+    # S = S / maximum(convert(Array, S))
+    S_inv = inv(S / norm(S))
+    S_inv = S_inv / norm(S_inv)
 
     @tensor projleft[(toU); (χ, upD, dnD)] := S_inv[toV, toU] * Vdag'[toRr, toV] * Rr[χ, upD, dnD, toRr]  # ▷
     @tensor projright[(χ, upD, dnD); (toU)] := U'[toU, toRl] * Rl[χ, upD, dnD, toRl]  # ◁
@@ -97,9 +98,10 @@ function get_proj_update_bottom(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ
     Ul, Rl = leftorth(QL, ((1, 3, 4), (2, 5, 6)))
     Ur, Rr = leftorth(QR, ((5, 1, 2), (6, 3, 4)))
     @tensor Rlr[l; r] := Rl[l, χ, upDL, dnDL] * Rr[r, χ, upDL, dnDL]
-    U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ))
-    S = S / norm(S)
-    S_inv = inv_normalize(S)
+    U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
+    # S = S / maximum(convert(Array, S))
+    S_inv = inv(S / norm(S))
+    S_inv = S_inv / norm(S_inv)
 
     @tensor projleft[(toU); (χ, upD, dnD)] := S_inv[toV, toU] * Vdag'[toRr, toV] * Rr[toRr, χ, upD, dnD]  # ▷
     @tensor projright[(χ, upD, dnD); (toU)] := U'[toU, toRl] * Rl[toRl, χ, upD, dnD]  # ◁
