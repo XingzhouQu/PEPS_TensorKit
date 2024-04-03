@@ -15,14 +15,12 @@ function get_proj_update_left(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::
     Rd, Vddag = rightorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[χL, upDL, dnDL, t] * Rd[χL, upDL, dnDL, b]
     U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())  # SVD() is more stable
-    # S = S / maximum(convert(Array, S))
-    S_inv = inv(S / norm(S))
-    S_inv = S_inv / norm(S_inv)
-    @show maximum(convert(Array, S_inv))
+    S_invHalf = SqrtInv(S)
+    @show extrema(convert(Array, S_invHalf))
     # RevdnupD = isomorphism(dual(space(Ru)[2]), space(Ru)[2])
     # RevdndnD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
-    @tensor projup[χ, upD, dnD; toU] := (S_inv[toV, toU] * Vdag'[toRd, toV]) * Rd[χ, upD, dnD, toRd]
-    @tensor projdn[(toU); (χ, upD, dnD)] := U'[toU, toRu] * Ru[χ, upD, dnD, toRu] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
+    @tensor projup[χ, upD, dnD; toU] := (S_invHalf[toV, toU] * Vdag'[toRd, toV]) * Rd[χ, upD, dnD, toRd]
+    @tensor projdn[(toV); (χ, upD, dnD)] := S_invHalf[toV, toU] * U'[toU, toRu] * Ru[χ, upD, dnD, toRu] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
 
     return projup, projdn, ϵ
 end
@@ -44,14 +42,12 @@ function get_proj_update_right(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ:
     Ud, Rd = leftorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[t, χL, upDL, dnDL] * Rd[b, χL, upDL, dnDL]
     U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
-    # S = S / maximum(convert(Array, S))
-    S_inv = inv(S / norm(S))
-    S_inv = S_inv / norm(S_inv)
+    S_invHalf = SqrtInv(S)
     # RevdnupD = isomorphism(dual(space(Ru)[3]), space(Ru)[3])
     # RevdndnD = isomorphism(dual(space(Ru)[4]), space(Ru)[4])
-    @tensor projup[χ, upD, dnD; toU] := (S_inv[toV, toU] * Vdag'[toRd, toV]) * Rd[toRd, χ, upD, dnD]  # ∇
-    @tensor projdn[(toU); (χL, upD, dnD)] := # Δ
-        U'[toU, toRu] * Ru[toRu, χL, upD, dnD] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
+    @tensor projup[χ, upD, dnD; toU] := (S_invHalf[toV, toU] * Vdag'[toRd, toV]) * Rd[toRd, χ, upD, dnD]  # ∇
+    @tensor projdn[(toV); (χL, upD, dnD)] := # Δ
+        S_invHalf[toV, toU] * U'[toU, toRu] * Ru[toRu, χL, upD, dnD] #* RevdnupD[upDflip, upD] * RevdndnD[dnDflip, dnD]
 
     return projup, projdn, ϵ
 end
@@ -73,12 +69,10 @@ function get_proj_update_top(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::I
     Rr, Vrdag = rightorth(QR, ((1, 2, 3), (4, 5, 6)))
     @tensor Rlr[l; r] := Rl[χ, upD, dnD, l] * Rr[χ, upD, dnD, r]
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
-    # S = S / maximum(convert(Array, S))
-    S_inv = inv(S / norm(S))
-    S_inv = S_inv / norm(S_inv)
+    S_invHalf = SqrtInv(S)
 
-    @tensor projleft[(toU); (χ, upD, dnD)] := S_inv[toV, toU] * Vdag'[toRr, toV] * Rr[χ, upD, dnD, toRr]  # ▷
-    @tensor projright[(χ, upD, dnD); (toU)] := U'[toU, toRl] * Rl[χ, upD, dnD, toRl]  # ◁
+    @tensor projleft[(toU); (χ, upD, dnD)] := S_invHalf[toV, toU] * Vdag'[toRr, toV] * Rr[χ, upD, dnD, toRr]  # ▷
+    @tensor projright[(χ, upD, dnD); (toV)] := S_invHalf[toV, toU] * U'[toU, toRl] * Rl[χ, upD, dnD, toRl]  # ◁
 
     return projleft, projright, ϵ
 end
@@ -99,12 +93,10 @@ function get_proj_update_bottom(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ
     Ur, Rr = leftorth(QR, ((5, 1, 2), (6, 3, 4)))
     @tensor Rlr[l; r] := Rl[l, χ, upDL, dnDL] * Rr[r, χ, upDL, dnDL]
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=SVD())
-    # S = S / maximum(convert(Array, S))
-    S_inv = inv(S / norm(S))
-    S_inv = S_inv / norm(S_inv)
+    S_invHalf = SqrtInv(S)
 
-    @tensor projleft[(toU); (χ, upD, dnD)] := S_inv[toV, toU] * Vdag'[toRr, toV] * Rr[toRr, χ, upD, dnD]  # ▷
-    @tensor projright[(χ, upD, dnD); (toU)] := U'[toU, toRl] * Rl[toRl, χ, upD, dnD]  # ◁
+    @tensor projleft[(toU); (χ, upD, dnD)] := S_invHalf[toV, toU] * Vdag'[toRr, toV] * Rr[toRr, χ, upD, dnD]  # ▷
+    @tensor projright[(χ, upD, dnD); (toV)] := S_invHalf[toV, toU] * U'[toU, toRl] * Rl[toRl, χ, upD, dnD]  # ◁
 
     return projleft, projright, ϵ
 end

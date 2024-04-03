@@ -1,11 +1,11 @@
-using LinearAlgebra
 """
 Modified form TensorKit/src/tensors/linalg.jl
 
-TensorMap `S` -> `√S^-1`.
+TensorMap `S` -> `√S^-1` and normalize properly.
 For diag matrix only.
 """
 function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
+     # t = t / norm(t)
      TP = eltype(t)
      cod = codomain(t)
      dom = domain(t)
@@ -17,10 +17,10 @@ function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
           tp = zeros(TP, size(block(t, Trivial())))
           for ii in 1:size(tp, 1)
                tmp = sqrt(one(TP) / block(t, Trivial())[ii, ii])
-               tmp > truncErr ? tp[ii, ii] = tmp : nothing
+               tmp > truncErr ? (tp[ii, ii] = tmp) : nothing
           end
           rslt = TensorMap(tp, domain(t) ← codomain(t))
-          return rslt / norm(rslt)
+          return rslt #/ maximum(convert(Array, rslt))
      else
           data = empty(t.data)
           for (c, b) in blocks(t)
@@ -28,12 +28,12 @@ function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
                bp = zeros(TP, size(b))
                for ii in 1:size(b, 1)
                     tmp = sqrt(one(TP) / b[ii, ii])
-                    tmp > truncErr ? bp[ii, ii] = tmp : nothing
+                    tmp > truncErr ? (bp[ii, ii] = tmp) : nothing
                end
                data[c] = bp
           end
           rslt = TensorMap(data, domain(t) ← codomain(t))
-          return rslt / norm(rslt)
+          return rslt #/ maximum(convert(Array, rslt))
      end
 end
 
