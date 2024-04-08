@@ -7,7 +7,7 @@ import TensorKit.×
 
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
-include("../models/Heisenberg_SU2.jl")
+include("../models/Heisenberg_U1.jl")
 include("../simple_update_fSU2/simple_update.jl")
 include("../Cal_Obs_fSU2/Cal_Obs.jl")
 
@@ -16,11 +16,11 @@ function main()
     para[:J] = 1.0
     para[:τlis] = [0.1, 0.05, 0.02, 0.01, 0.005, 0.005, 0.005, 0.002, 0.001, 0.001, 0.001]
     para[:Dk] = 10  # Dkept in the simple udate
-    para[:pspace] = Rep[SU₂](1 // 2 => 1)
+    para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
-    pspace = Rep[SU₂](1 // 2 => 1)
-    aspacelr = Rep[SU₂]((0 => 1), (1 // 2 => 1))
-    aspacetb = Rep[SU₂]((0 => 1), (1 // 2 => 1))
+    pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
+    aspacelr = Rep[U₁](1 // 2 => 1)
+    aspacetb = Rep[U₁](1 // 2 => 1)
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update

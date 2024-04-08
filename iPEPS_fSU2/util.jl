@@ -1,3 +1,6 @@
+using LinearAlgebra
+using Statistics
+import TensorKit.normalize!
 """
 Modified form TensorKit/src/tensors/linalg.jl
 
@@ -5,7 +8,7 @@ TensorMap `S` -> `√S^-1` and normalize properly.
 For diag matrix only.
 """
 function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
-     # t = t / norm(t)
+     t = t / norm(t)
      TP = eltype(t)
      cod = codomain(t)
      dom = domain(t)
@@ -14,27 +17,70 @@ function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
                throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
      end
      if sectortype(t) === Trivial
-          tp = zeros(TP, size(block(t, Trivial())))
-          for ii in 1:size(tp, 1)
-               tmp = sqrt(one(TP) / block(t, Trivial())[ii, ii])
-               tmp > truncErr ? (tp[ii, ii] = tmp) : nothing
+          tp = diag(block(t, Trivial()))
+          for (ind, val) in enumerate(tp)
+               val < truncErr ? tp[ind] = zero(TP) : tp[ind] = one(TP) / sqrt(val)
           end
-          rslt = TensorMap(tp, domain(t) ← codomain(t))
-          return rslt #/ maximum(convert(Array, rslt))
+          rslt = TensorMap(diagm(tp), domain(t) ← codomain(t))
+          return rslt / mean(tp)
      else
           data = empty(t.data)
           for (c, b) in blocks(t)
-               @assert size(b, 1) == size(b, 2) "data should be square matrix?"
-               bp = zeros(TP, size(b))
-               for ii in 1:size(b, 1)
-                    tmp = sqrt(one(TP) / b[ii, ii])
-                    tmp > truncErr ? (bp[ii, ii] = tmp) : nothing
+               bp = diag(b)
+               for (ind, val) in enumerate(bp)
+                    val < truncErr ? bp[ind] = zero(TP) : bp[ind] = one(TP) / sqrt(val)
                end
-               data[c] = bp
+               data[c] = diagm(bp)
           end
           rslt = TensorMap(data, domain(t) ← codomain(t))
-          return rslt #/ maximum(convert(Array, rslt))
+          return rslt / mean(convert(Array, rslt))
      end
+end
+
+"""
+return √S. For diag SVD spectrum only.
+"""
+function sqrt4diag(t::AbstractTensorMap)
+     cod = codomain(t)
+     dom = domain(t)
+     for c in union(blocksectors(cod), blocksectors(dom))
+          blockdim(cod, c) == blockdim(dom, c) ||
+               throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+     end
+     if sectortype(t) === Trivial
+          tp = diag(block(t, Trivial()))
+          return TensorMap(diagm(sqrt.(tp)), domain(t) ← codomain(t))
+     else
+          data = empty(t.data)
+          for (c, b) in blocks(t)
+               bp = diag(b)
+               data[c] = diagm(sqrt.(bp))
+          end
+          return TensorMap(data, domain(t) ← codomain(t))
+     end
+end
+
+
+"""
+print the max and min value in SVD spectrum.\n
+Useful for test numerical stability.
+"""
+function printMinMax(S::TensorMap)
+     s = convert(Array, S)
+     println("SVD spectrum: Max $(maximum(s)). Min $(minimum(s)). Size $(size(s)). #of zeros $(count(i->(i==0), diag(s)))")
+     return nothing
+end
+
+"""
+Normaliza the ipeps.
+"""
+function normalize!(ipeps::iPEPS, p::Real=2)
+     Lx = ipeps.Lx
+     Ly = ipeps.Ly
+     for xx in 1:Lx, yy in 1:Ly
+          normalize!(ipeps[xx, yy], p)
+     end
+     return nothing
 end
 
 

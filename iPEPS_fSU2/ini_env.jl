@@ -12,7 +12,7 @@ function ini_lt_corner(A::AbstractTensorMap)
     fbspace = fuse(space(lt)[2], space(lt)[4])
     isob = isometry(dual(fbspace), space(lt)[2] ⊗ space(lt)[4])
     @tensor ltfuse[(rχ, bχ); ()] := (isor[rχ, rupχin, rdnχin] * lt[rupχin, bupχin, rdnχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
-    return ltfuse
+    return ltfuse / norm(ltfuse, Inf)
 end
 
 
@@ -29,7 +29,7 @@ function ini_lb_corner(A::AbstractTensorMap)
     frspace = fuse(space(lb)[3], space(lb)[4])
     isor = isometry(dual(frspace), space(lb)[3] ⊗ space(lb)[4])
     @tensor lbfuse[(tχ, rχ); ()] := (isot[tχ, tupχin, tdnχin] * lb[tdnχin, tupχin, rupχin, rdnχin]) * isor[rχ, rupχin, rdnχin]
-    return lbfuse
+    return lbfuse / norm(lbfuse, Inf)
 end
 
 
@@ -46,7 +46,7 @@ function ini_rt_corner(A::AbstractTensorMap)
     fbspace = fuse(space(rt)[3], space(rt)[4])
     isob = isometry(dual(fbspace), space(rt)[3] ⊗ space(rt)[4])
     @tensor rtfuse[(lχ, bχ); ()] := (isol[lχ, lupχin, ldnχin] * rt[lupχin, ldnχin, bupχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
-    return rtfuse
+    return rtfuse / norm(rtfuse, Inf)
 end
 
 
@@ -63,14 +63,14 @@ function ini_rb_corner(A::AbstractTensorMap)
     ftspace = fuse(space(rb)[3], space(rb)[4])
     isot = isometry(ftspace, space(rb)[3] ⊗ space(rb)[4])
     @tensor rbfuse[(); (lχ, tχ)] := (isol[lχ, lupχin, ldnχin] * rb[lupχin, ldnχin, tupχin, tdnχin]) * isot[tχ, tupχin, tdnχin]
-    return rbfuse
+    return rbfuse / norm(rbfuse, Inf)
 end
 
 # =========================================
 """
 left edge transfer tensor.
 
-return: tmpfuse[(tχ, bχ); (rup, rdn)]
+return: lfuse[(tχ, bχ); (rup, rdn)]
 """
 function ini_l_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -79,14 +79,14 @@ function ini_l_transfer(A::AbstractTensorMap)
     isot = isometry(ftspace, space(tmp)[1] ⊗ space(tmp)[2])
     fbspace = fuse(space(tmp)[5], space(tmp)[6])
     isob = isometry(dual(fbspace), space(tmp)[5] ⊗ space(tmp)[6])
-    @tensor tmpfuse[(tχ, bχ); (rup, rdn)] := (isot[tχ, tupχin, tdnχin] * tmp[tupχin, tdnχin, rup, rdn, bupχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
-    return tmpfuse
+    @tensor lfuse[(tχ, bχ); (rup, rdn)] := (isot[tχ, tupχin, tdnχin] * tmp[tupχin, tdnχin, rup, rdn, bupχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
+    return lfuse / norm(lfuse, Inf)
 end
 
 """
 right edge transfer tensor.
 
-return: tmpfuse[(lup, ldn, tχ, bχ); ()]
+return: rfuse[(lup, ldn, tχ, bχ); ()]
 """
 function ini_r_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -95,14 +95,14 @@ function ini_r_transfer(A::AbstractTensorMap)
     isot = isometry(ftspace, space(tmp)[3] ⊗ space(tmp)[4])
     fbspace = fuse(space(tmp)[5], space(tmp)[6])
     isob = isometry(dual(fbspace), space(tmp)[5] ⊗ space(tmp)[6])
-    @tensor tmpfuse[(lup, ldn, tχ, bχ); ()] := (isot[tχ, tupχin, tdnχin] * tmp[lup, ldn, tupχin, tdnχin, bupχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
-    return tmpfuse
+    @tensor rfuse[(lup, ldn, tχ, bχ); ()] := (isot[tχ, tupχin, tdnχin] * tmp[lup, ldn, tupχin, tdnχin, bupχin, bdnχin]) * isob[bχ, bupχin, bdnχin]
+    return rfuse / norm(rfuse, Inf)
 end
 
 """
 top edge transfer tensor.
 
-return: tmpfuse[(lχ, rχ); (bup, bdn)]
+return: tfuse[(lχ, rχ); (bup, bdn)]
 """
 function ini_t_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -111,14 +111,14 @@ function ini_t_transfer(A::AbstractTensorMap)
     isol = isometry(flspace, space(tmp)[1] ⊗ space(tmp)[2])
     frspace = fuse(space(tmp)[3], space(tmp)[4])
     isor = isometry(dual(frspace), space(tmp)[3] ⊗ space(tmp)[4])
-    @tensor tmpfuse[(lχ, rχ); (bup, bdn)] := (isol[lχ, lupχin, ldnχin] * tmp[lupχin, ldnχin, rupχin, rdnχin, bup, bdn]) * isor[rχ, rupχin, rdnχin]
-    return tmpfuse
+    @tensor tfuse[(lχ, rχ); (bup, bdn)] := (isol[lχ, lupχin, ldnχin] * tmp[lupχin, ldnχin, rupχin, rdnχin, bup, bdn]) * isor[rχ, rupχin, rdnχin]
+    return tfuse / norm(tfuse, Inf)
 end
 
 """
 bottom edge transfer tensor.
 
-return: tmpfuse[(lχ, tup, tdn, rχ); ()]
+return: bfuse[(lχ, tup, tdn, rχ); ()]
 """
 function ini_b_transfer(A::AbstractTensorMap)
     Abar = A'
@@ -128,5 +128,5 @@ function ini_b_transfer(A::AbstractTensorMap)
     frspace = fuse(space(tmp)[5], space(tmp)[6])
     isor = isometry(dual(frspace), space(tmp)[5] ⊗ space(tmp)[6])
     @tensor bfuse[(lχ, tup, tdn, rχ); ()] := (isol[lχ, lupχin, ldnχin] * tmp[lupχin, ldnχin, tup, tdn, rupχin, rdnχin]) * isor[rχ, rupχin, rdnχin]
-    return bfuse
+    return bfuse / norm(bfuse, Inf)
 end

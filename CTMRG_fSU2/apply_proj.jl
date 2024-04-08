@@ -12,7 +12,7 @@ function apply_proj_left!(ipeps::iPEPS, envs::iPEPSenv, projup::TensorMap, projd
         projdn[bχin, upDin, dnDin, bχNew]
 
     # 更新右侧的环境
-    envs[x+1, y].transfer.l = PTMMP
+    envs[x+1, y].transfer.l = PTMMP / norm(PTMMP, Inf)
     return nothing
 end
 
@@ -27,7 +27,7 @@ function apply_proj_right!(ipeps::iPEPS, envs::iPEPSenv, projup::TensorMap, proj
         projdn[bχin, upDin, dnDin, bχNew]
 
     # 更新左侧的环境
-    envs[x-1, y].transfer.r = PTMMP
+    envs[x-1, y].transfer.r = PTMMP / norm(PTMMP, Inf)
     return nothing
 end
 
@@ -42,7 +42,7 @@ function apply_proj_top!(ipeps::iPEPS, envs::iPEPSenv, projleft::TensorMap, proj
         projright[rχNew, rχin, rupDin, rdnDin]
 
     # 更新下侧的环境
-    envs[x, y+1].transfer.t = PTMMP
+    envs[x, y+1].transfer.t = PTMMP / norm(PTMMP, Inf)
     return nothing
 end
 
@@ -57,7 +57,7 @@ function apply_proj_bottom!(ipeps::iPEPS, envs::iPEPSenv, projleft::TensorMap, p
         projright[rχNew, rχin, rupDin, rdnDin]
 
     # 更新上侧的环境
-    envs[x, y-1].transfer.b = PTMMP
+    envs[x, y-1].transfer.b = PTMMP / norm(PTMMP, Inf)
     return nothing
 end
 
@@ -66,55 +66,55 @@ end
 function apply_proj_ltCorner_updateL!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(rχNew, bχNew); ()] := (envs[x, y].corner.lt[rχin, bχin] * proj[bχin, upDin, dnDin, bχNew]) *
                                        envs[x, y].transfer.t[rχin, rχNew, upDin, dnDin]
-    envs[x+1, y].corner.lt = CPT
+    envs[x+1, y].corner.lt = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_ltCorner_updateT!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(rχNew, bχNew); ()] := (envs[x, y].corner.lt[rχin, bχin] * proj[rχNew, rχin, upDin, dnDin]) *
                                        envs[x, y].transfer.l[bχin, bχNew, upDin, dnDin]
-    envs[x, y+1].corner.lt = CPT
+    envs[x, y+1].corner.lt = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_lbCorner_updateL!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(tχNew, rχNew); ()] := (envs[x, y].corner.lb[tχin, rχin] * proj[tχNew, tχin, upDin, dnDin]) *
                                        envs[x, y].transfer.b[rχin, upDin, dnDin, rχNew]
-    envs[x+1, y].corner.lb = CPT
+    envs[x+1, y].corner.lb = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_lbCorner_updateB!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(tχNew, rχNew); ()] := (envs[x, y].corner.lb[tχin, rχin] * proj[rχNew, rχin, upDin, dnDin]) *
                                        envs[x, y].transfer.l[tχNew, tχin, upDin, dnDin]
-    envs[x, y-1].corner.lb = CPT
+    envs[x, y-1].corner.lb = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_rtCorner_updateR!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(lχNew, bχNew); ()] := (envs[x, y].corner.rt[lχin, bχin] * proj[bχin, upDin, dnDin, bχNew]) *
                                        envs[x, y].transfer.t[lχNew, lχin, upDin, dnDin]
-    envs[x-1, y].corner.rt = CPT
+    envs[x-1, y].corner.rt = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_rtCorner_updateT!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(lχNew, bχNew); ()] := (envs[x, y].corner.rt[lχin, bχin] * proj[lχin, upDin, dnDin, lχNew]) *
                                        envs[x, y].transfer.r[upDin, dnDin, bχin, bχNew]
-    envs[x, y+1].corner.rt = CPT
+    envs[x, y+1].corner.rt = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_rbCorner_updateR!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(lχNew, tχNew); ()] := (envs[x, y].corner.rb[lχin, tχin] * proj[tχNew, tχin, upDin, dnDin]) *
                                        envs[x, y].transfer.b[lχNew, upDin, dnDin, lχin]
-    envs[x-1, y].corner.rb = CPT
+    envs[x-1, y].corner.rb = CPT / norm(CPT, Inf)
     return nothing
 end
 
 function apply_proj_rbCorner_updateB!(envs::iPEPSenv, proj::TensorMap, x::Int, y::Int)
     @tensor CPT[(lχNew, tχNew); ()] := (envs[x, y].corner.rb[lχin, tχin] * proj[lχin, upDin, dnDin, lχNew]) *
                                        envs[x, y].transfer.r[upDin, dnDin, tχNew, tχin]
-    envs[x, y-1].corner.rb = CPT
+    envs[x, y-1].corner.rb = CPT / norm(CPT, Inf)
     return nothing
 end
