@@ -1,4 +1,4 @@
-function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}, para::Dict{Symbol,Any}; site=[1, 1])
+function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{String}, para::Dict{Symbol,Any}; site=[1, 1], get_op::Function)
     x = site[1]
     y = site[2]
     vals = Vector{Number}(undef, length(Ops))
@@ -12,7 +12,7 @@ function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{Symbol}, para::
     @tensor nrm = ψ□ψ[p, p]
     for (ii, tag) in enumerate(Ops)
         op = get_op(tag, para)
-        @tensor tmp = ψ□ψ[pup, pdn] * op[pup, pdn]
+        @tensor contractcheck = true tmp[] := ψ□ψ[pup, pdn] * op[pdn, pup]
         vals[ii] = scalar(tmp)
     end
     rslt = Dict(Ops[ind] => (vals[ind] / nrm) for ind in 1:length(vals))

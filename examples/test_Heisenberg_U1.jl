@@ -3,7 +3,7 @@ using TensorKit
 import TensorKit.×
 # using JLD2
 
-# 测试正方格子 Heisenberg 模型的能量
+# 测试正方格子 Heisenberg 模型, U1spin. 
 
 include("../iPEPS_fSU2/iPEPS.jl")
 include("../CTMRG_fSU2/CTMRG.jl")
@@ -14,13 +14,13 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
-    para[:τlis] = [0.1, 0.05, 0.02, 0.01, 0.005, 0.005, 0.005, 0.002, 0.001, 0.001, 0.001]
-    para[:Dk] = 10  # Dkept in the simple udate
+    para[:τlis] = [1.0, 0.5, 0.1, 0.05, 0.02, 0.01, 0.005, 0.005, 0.005, 0.002, 0.001, 0.001, 0.001]
+    para[:Dk] = 8  # Dkept in the simple udate
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
     pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
-    aspacelr = Rep[U₁](1 // 2 => 1)
-    aspacetb = Rep[U₁](1 // 2 => 1)
+    aspacelr = Rep[U₁](0 => 1, 1 // 2 => 1, -1 // 2 => 1)
+    aspacetb = Rep[U₁](0 => 1, 1 // 2 => 1, -1 // 2 => 1)
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
@@ -42,13 +42,19 @@ function main()
 
     # 计算观测量
     println("============== Calculating Obs ====================")
-    E_bond1 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[1, 2], get_op=get_op_Heisenberg)
-    E_bond2 = Cal_Obs_2site(ipeps, envs, ["hij"], para; site1=[1, 1], site2=[2, 1], get_op=get_op_Heisenberg)
-    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[2, 1], site2=[2, 2], get_op=get_op_Heisenberg)
-    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[1, 2], site2=[2, 2], get_op=get_op_Heisenberg)
+    E_bond1 = Cal_Obs_2site(ipeps, envs, ["hij", "SzSz", "SpSm"], para; site1=[1, 1], site2=[1, 2], get_op=get_op_Heisenberg)
+    E_bond2 = Cal_Obs_2site(ipeps, envs, ["hij", "SzSz", "SpSm"], para; site1=[1, 1], site2=[2, 1], get_op=get_op_Heisenberg)
+    E_bond3 = Cal_Obs_2site(ipeps, envs, ["hij", "SzSz", "SpSm"], para, site1=[2, 1], site2=[2, 2], get_op=get_op_Heisenberg)
+    E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij", "SzSz", "SpSm"], para, site1=[1, 2], site2=[2, 2], get_op=get_op_Heisenberg)
 
     @show E_bond1, E_bond2, E_bond3, E_bond4
     @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 4
+
+    Sz11 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[1, 1], get_op=get_op_Heisenberg)
+    Sz12 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[1, 2], get_op=get_op_Heisenberg)
+    Sz21 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[2, 1], get_op=get_op_Heisenberg)
+    Sz22 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[2, 2], get_op=get_op_Heisenberg)
+    @show Sz11, Sz12, Sz21, Sz22
 end
 
 main()
