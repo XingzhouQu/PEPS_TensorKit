@@ -14,8 +14,11 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
-    para[:τlis] = [1.0, 0.5, 0.1, 0.05, 0.02, 0.01, 0.005, 0.005, 0.005, 0.002, 0.001, 0.001, 0.001]
+    # para[:τlis] = vcat(fill(0.1, 50), fill(0.1, 50), fill(0.01, 50), fill(0.001, 50))
+    para[:τlis] = [1.0, 0.1, 0.01, 0.001, 0.0001]
+    para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
     para[:Dk] = 8  # Dkept in the simple udate
+    para[:verbose] = 1
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
     pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
@@ -25,7 +28,7 @@ function main()
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
-    simple_update!(ipepsγλ, Heisenberg_hij, para)
+    simple_update!(ipepsγλ, Heisenberg_hij, para, get_op_Heisenberg)
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
@@ -35,8 +38,8 @@ function main()
     @show space(ipeps[1, 1])
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
-    χ = 100
-    Nit = 20
+    χ = 30
+    Nit = 1
     CTMRG!(ipeps, envs, χ, Nit)
     check_qn(ipeps, envs)
 

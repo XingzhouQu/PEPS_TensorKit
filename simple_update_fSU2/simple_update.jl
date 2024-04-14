@@ -1,48 +1,77 @@
-function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,Any})
+function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,Any}, get_op::Function)
+    Lx = ipeps.Lx
+    Ly = ipeps.Ly
+
     τlis = para[:τlis]
     Dk = para[:Dk]
-    Nit = length(τlis)
+    verbose = para[:verbose]
+    maxStep1τ = para[:maxStep1τ]
     hij = HamFunc(para)
-    for (it, τ) in enumerate(τlis)
-        println("============= Simple update iteration $it / $Nit ================")
+    itsum = 0  # 记录总的迭代次数
+    itime = 0.0  # 演化的总虚时间
+    Ebefore = 0.0
+    for τ in τlis
         gate = exp(-τ * hij)
-        errlis = simple_update_1step!(ipeps, Dk, gate)
-        println("imaginary time now = $(sum(τlis[1:it])), truncation error = $(maximum(errlis))")
-        flush(stdout)
-        if maximum(errlis) < 1e-10
-            println("Stop simple update since the truncation error is too small.")
-            break
+        for it in 0:maxStep1τ
+            errlis, prodNrm = simple_update_1step!(ipeps, Dk, gate, verbose=verbose)
+            itime += τ
+            println("Truncation error = $(maximum(errlis)), total imaginary time = $itime")
+            # ======== 检查能量收敛性 ====== See: PRB 104, 155118 (2021), Appendix 3.C
+            E = -log(prodNrm) / τ
+            println("Estimated energy per site is $(E / (Lx*Ly))")
+            # =============================
+            it += 1
+            itsum += 1
+            println("=========== Step τ=$τ, iteration $it, total iteration $itsum =======")
+            println()
+            # ======== 提前终止循环的情况 ===========
+            if maximum(errlis) < 1e-10
+                println("!! Stop simple update since the truncation error is too small.")
+                return nothing
+                # elseif E > Ebefore && it >= 5
+                #     Ebefore = E
+                #     println("!! Energy increase. Reduce time step.")
+                #     break
+            elseif abs((E - Ebefore) / Ebefore) < 1e-6
+                Ebefore = E
+                println("!! Energy converge. Reduce imaginary time step")
+                break
+            end
+            Ebefore = E
+            flush(stdout)
         end
     end
-
     return nothing
 end
 
 
 # 一步投影
-function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gateNN::TensorMap)
+function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gateNN::TensorMap; verbose=1)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     # ================= 最近邻相互作用 ==============
     errlis = Vector{Float64}(undef, 2 * Lx * Ly)  # 总的 bond 数
+    prodNrm = 1.0
     Nb = 1
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx
-        err = bond_proj_lr!(ipeps, xx, yy, Dk, gateNN)
-        println("横向更新xx$xx, yy$yy, error=$err")
+        err, nrm = bond_proj_lr!(ipeps, xx, yy, Dk, gateNN)
+        verbose > 1 ? println("横向更新xx$xx, yy$yy, error=$err") : nothing
         errlis[Nb] = err
+        prodNrm *= nrm
         Nb += 1
     end
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
-        err = bond_proj_ud!(ipeps, xx, yy, Dk, gateNN)
-        println("纵向更新xx$xx, yy$yy, error=$err")
+        err, nrm = bond_proj_ud!(ipeps, xx, yy, Dk, gateNN)
+        verbose > 1 ? println("纵向更新xx$xx, yy$yy, error=$err") : nothing
         errlis[Nb] = err
+        prodNrm *= nrm
         Nb += 1
     end
     # TODO ============= 次近邻相互作用 =============
 
-    return errlis
+    return errlis, prodNrm
 end
 
 
@@ -64,12 +93,13 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
                                     inv(ipeps[xx+1, yy].r)[re, r] * inv(ipeps[xx+1, yy].b)[be, b]
     # 更新 tensor, 注意这里要归一化
-    λnew = λnew / norm(λnew)
+    nrm = norm(λnew)
+    λnew = λnew / nrm
     ipeps[xx+1, yy].Γ = Γrnew
     ipeps[xx, yy].Γ = Γlnew
     ipeps[xx+1, yy].l = λnew
     ipeps[xx, yy].r = λnew
-    return err
+    return err, nrm
 end
 
 # 更新 [xx, yy] 与 [xx, yy+1] 之间的 bond
@@ -89,10 +119,11 @@ function bond_proj_ud!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *
                                     inv(ipeps[xx, yy].r)[re, r] * inv(ipeps[xx, yy].l)[l, le]
     # 更新 tensor, 注意这里要归一化
-    λnew = λnew / norm(λnew)
+    nrm = norm(λnew)
+    λnew = λnew / nrm
     ipeps[xx, yy].b = λnew
     ipeps[xx, yy+1].t = λnew
     ipeps[xx, yy].Γ = Γunew
     ipeps[xx, yy+1].Γ = Γdnew
-    return err
+    return err, nrm
 end
