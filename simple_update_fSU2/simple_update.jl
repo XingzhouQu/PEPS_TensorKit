@@ -25,14 +25,14 @@ function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,A
             println("=========== Step τ=$τ, iteration $it, total iteration $itsum =======")
             println()
             # ======== 提前终止循环的情况 ===========
-            if maximum(errlis) < 1e-10
-                println("!! Stop simple update since the truncation error is too small.")
-                return nothing
+            # if maximum(errlis) < 1e-20
+            #     println("!! Stop simple update since the truncation error is too small.")
+            #     return nothing
                 # elseif E > Ebefore && it >= 5
                 #     Ebefore = E
                 #     println("!! Energy increase. Reduce time step.")
                 #     break
-            elseif abs((E - Ebefore) / Ebefore) < 1e-6
+            if abs((E - Ebefore) / Ebefore) < para[:Etol]
                 Ebefore = E
                 println("!! Energy converge. Reduce imaginary time step")
                 break

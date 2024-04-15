@@ -17,7 +17,8 @@ function main()
     # para[:τlis] = vcat(fill(0.1, 50), fill(0.1, 50), fill(0.01, 50), fill(0.001, 50))
     para[:τlis] = [1.0, 0.1, 0.01, 0.001, 0.0001]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 8  # Dkept in the simple udate
+    para[:Dk] = 12  # Dkept in the simple udate
+    para[:Etol] = 1e-8  # simple update 能量差小于这个数就可以继续增大步长
     para[:verbose] = 1
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
@@ -32,14 +33,11 @@ function main()
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
-    @show norm(ipeps[1, 1])
-    @show norm(ipeps[1, 2])
-    # normalize!(ipeps)
     @show space(ipeps[1, 1])
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
-    χ = 30
-    Nit = 1
+    χ = 100
+    Nit = 15
     CTMRG!(ipeps, envs, χ, Nit)
     check_qn(ipeps, envs)
 
@@ -51,7 +49,7 @@ function main()
     E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij", "SzSz", "SpSm"], para, site1=[1, 2], site2=[2, 2], get_op=get_op_Heisenberg)
 
     @show E_bond1, E_bond2, E_bond3, E_bond4
-    @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 4
+    @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 2
 
     Sz11 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[1, 1], get_op=get_op_Heisenberg)
     Sz12 = Cal_Obs_1site(ipeps, envs, ["Sz"], para; site=[1, 2], get_op=get_op_Heisenberg)

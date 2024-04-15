@@ -29,6 +29,7 @@ function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para
     if sum(site1) > sum(site2)
         site1, site2 = site2, site1
     end
+    println("Calculating $(Gates) at site $site1 and site $site2")
     vals = Vector{Number}(undef, length(Gates))
     x1, y1 = site1
     x2, y2 = site2
