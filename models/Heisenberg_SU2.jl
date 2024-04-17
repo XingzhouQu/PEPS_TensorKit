@@ -12,7 +12,7 @@ function Heisenberg_hij(para::Dict{Symbol,Any})
     pspace = Rep[SU₂](1 // 2 => 1)
     ss = SS(pspace)
     gate = J * ss
-    return gate
+    return [gate]
 end
 
 function get_op_Heisenberg(tag::String, para::Dict{Symbol,Any})

@@ -28,7 +28,7 @@ function main()
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
-    simple_update!(ipepsγλ, Heisenberg_hij, para, get_op_Heisenberg)
+    simple_update!(ipepsγλ, Heisenberg_hij, para)
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
