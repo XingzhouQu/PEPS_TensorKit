@@ -1,6 +1,6 @@
 # using MKL
 using TensorKit
-import TensorKit.×
+# import TensorKit.×
 # using JLD2
 
 # 测试正方格子 Heisenberg 模型的能量
@@ -14,8 +14,11 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
-    para[:τlis] = [0.1, 0.05, 0.02, 0.01, 0.005, 0.005, 0.005, 0.002, 0.001, 0.001, 0.001]
-    para[:Dk] = 10  # Dkept in the simple udate
+    para[:τlis] = [1.0, 0.1, 0.01, 0.001, 0.0001]
+    para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:Dk] = 8  # Dkept in the simple udate. (U1 D)
+    para[:Etol] = 1e-8  # simple update 能量差小于这个数就可以继续增大步长
+    para[:verbose] = 1
     para[:pspace] = Rep[SU₂](1 // 2 => 1)
 
     pspace = Rep[SU₂](1 // 2 => 1)
@@ -25,13 +28,10 @@ function main()
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
-    simple_update!(ipepsγλ, Heisenberg_hij, para)
+    simple_update!(ipepsγλ, Heisenberg_hij, para, get_op_Heisenberg)
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
-    @show norm(ipeps[1, 1])
-    @show norm(ipeps[1, 2])
-    # normalize!(ipeps)
     @show space(ipeps[1, 1])
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
@@ -48,7 +48,7 @@ function main()
     E_bond4 = Cal_Obs_2site(ipeps, envs, ["hij"], para, site1=[1, 2], site2=[2, 2], get_op=get_op_Heisenberg)
 
     @show E_bond1, E_bond2, E_bond3, E_bond4
-    @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 4
+    @show (get(E_bond1, "hij", NaN) + get(E_bond2, "hij", NaN) + get(E_bond3, "hij", NaN) + get(E_bond4, "hij", NaN)) / 2
 end
 
 main()

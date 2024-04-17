@@ -1,6 +1,6 @@
-# using MKL
+using MKL
 using TensorKit
-import TensorKit.×
+# import TensorKit.×
 # using JLD2
 
 # 测试正方格子 Heisenberg 模型, U1spin. 
@@ -14,7 +14,6 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
-    # para[:τlis] = vcat(fill(0.1, 50), fill(0.1, 50), fill(0.01, 50), fill(0.001, 50))
     para[:τlis] = [1.0, 0.1, 0.01, 0.001, 0.0001]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
     para[:Dk] = 12  # Dkept in the simple udate
@@ -37,7 +36,7 @@ function main()
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
     χ = 100
-    Nit = 15
+    Nit = 20
     CTMRG!(ipeps, envs, χ, Nit)
     check_qn(ipeps, envs)
 
