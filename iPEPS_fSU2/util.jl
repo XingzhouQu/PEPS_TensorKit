@@ -85,15 +85,13 @@ end
 
 
 """
-`check_qn(ipeps::iPEPS, envs::iPEPSenv) \n`
-
 Check the quantum numbers for `ipeps::iPEPS` and corresponding `envs::iPEPSenv`. \n
 Warnings will be thrown if mismatched quantum numbers are detected.\n
 Useful for debug.
 """
 function check_qn(ipeps::iPEPS, envs::iPEPSenv)
-     Lx = envs.Lx
-     Ly = envs.Ly
+     Lx = ipeps.Lx
+     Ly = ipeps.Ly
      for xx in 1:Lx, yy in 1:Ly
           if space(ipeps[xx, yy])[4] != space(ipeps[xx+1, yy])[1]'
                @warn "iPEPS: [$xx, $yy] right $(space(ipeps[xx, yy])[4]) ≠ [$(xx+1), $yy] left $(space(ipeps[xx+1, yy])[1]')"
@@ -124,6 +122,26 @@ function check_qn(ipeps::iPEPS, envs::iPEPSenv)
           end
           if space(envs[xx, yy].transfer.t)[2] != space(envs[xx, yy].corner.rt)[1]'
                @warn "Env: [$xx, $yy] top transfer $(space(envs[xx, yy].transfer.t)[2]) ≠ right-top corner $(space(envs[xx, yy].corner.rt)[1]')"
+          end
+     end
+     return nothing
+end
+
+function check_qn(ipeps::iPEPSΓΛ)
+     Lx = ipeps.Lx
+     Ly = ipeps.Ly
+     for xx in 1:Lx, yy in 1:Ly
+          if space(ipeps[xx, yy].Γ)[1] != space(ipeps[xx, yy].l)[2]'
+               @warn "iPEPS: [$xx, $yy] left $(space(ipeps[xx, yy].Γ)[1]) ≠ left bond space $(space(ipeps[xx, yy].l)[2]')"
+          end
+          if space(ipeps[xx, yy].Γ)[2] != space(ipeps[xx, yy].t)[2]'
+               @warn "iPEPS: [$xx, $yy] top $(space(ipeps[xx, yy].Γ)[2]) ≠ top bond space $(space(ipeps[xx, yy].t)[2]')"
+          end
+          if space(ipeps[xx, yy].Γ)[4] != space(ipeps[xx, yy].r)[1]'
+               @warn "iPEPS: [$xx, $yy] right $(space(ipeps[xx, yy].Γ)[4]) ≠ right bond space $(space(ipeps[xx, yy].r)[1]')"
+          end
+          if space(ipeps[xx, yy].Γ)[5] != space(ipeps[xx, yy].b)[1]'
+               @warn "iPEPS: [$xx, $yy] bottom $(space(ipeps[xx, yy].Γ)[5]) ≠ bottom bond space $(space(ipeps[xx, yy].b)[1]')"
           end
      end
      return nothing

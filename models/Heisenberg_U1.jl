@@ -36,9 +36,23 @@ function Heisenberg_hij(para::Dict{Symbol,Any})
     return [gate]
 end
 
+function J1J2_Heisenberg_hij(para::Dict{Symbol,Any})
+    J1 = para[:J1]
+    J2 = para[:J2]
+    pspace = para[:pspace]
+    ss = Sz(pspace) ⊗ Sz(pspace) + (S₊₋(pspace) + S₋₊(pspace)) / 2
+    gateNN = J1 * ss
+    gateNNN = J2 * ss
+    return [gateNN, gateNNN]
+end
+
 function get_op_Heisenberg(tag::String, para::Dict{Symbol,Any})
     if tag == "hij"
         return Heisenberg_hij(para)
+    elseif tag == "hijNN"
+        return J1J2_Heisenberg_hij(para)[1]
+    elseif tag == "hijNNN"
+        return J1J2_Heisenberg_hij(para)[2]
     elseif tag == "Sz"
         return Sz(para[:pspace])
     elseif tag == "SzSz"
