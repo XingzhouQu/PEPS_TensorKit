@@ -65,7 +65,7 @@ function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx
         err, nrm = bond_proj_lr!(ipeps, xx, yy, Dk, gates[1])
-        verbose > 1 ? println("横向更新xx$xx, yy$yy, error=$err") : nothing
+        verbose > 1 ? println("横向更新 [$xx, $yy], error=$err") : nothing
         errlis[Nb] = err
         prodNrm *= nrm
         Nb += 1
@@ -73,7 +73,7 @@ function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
         err, nrm = bond_proj_ud!(ipeps, xx, yy, Dk, gates[1])
-        verbose > 1 ? println("纵向更新xx$xx, yy$yy, error=$err") : nothing
+        verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
         errlis[Nb] = err
         prodNrm *= nrm
         Nb += 1
@@ -84,14 +84,14 @@ function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap
             errup1, errup2, nrmup1, nrmup2 = site_proj_lu2rd_upPath!(ipeps, xx, yy, Dk, gates[2])
             errdn1, errdn2, nrmdn1, nrmdn2 = site_proj_lu2rd_dnPath!(ipeps, xx, yy, Dk, gates[2])
             errlis[Nb] = maximum([errup1, errup2, errdn1, errdn2])
-            verbose > 1 ? println("右下对角更新xx$xx, yy$yy, error=$(errlis[Nb])") : nothing
+            verbose > 1 ? println("右下对角更新 [$xx, $yy], error=$(errlis[Nb])") : nothing
             prodNrm *= (nrmup1 * nrmup2 * nrmdn1 * nrmdn2)
             Nb += 1
 
             errup1, errup2, nrmup1, nrmup2 = site_proj_ru2ld_upPath!(ipeps, xx, yy, Dk, gates[2])
             errdn1, errdn2, nrmdn1, nrmdn2 = site_proj_ru2ld_dnPath!(ipeps, xx, yy, Dk, gates[2])
             errlis[Nb] = maximum([errup1, errup2, errdn1, errdn2])
-            verbose > 1 ? println("左下对角更新xx$xx, yy$yy, error=$(errlis[Nb])") : nothing
+            verbose > 1 ? println("左下对角更新 [$xx, $yy], error=$(errlis[Nb])") : nothing
             prodNrm *= (nrmup1 * nrmup2 * nrmdn1 * nrmdn2)
             Nb += 1
         end

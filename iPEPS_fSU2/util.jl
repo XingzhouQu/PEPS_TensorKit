@@ -1,6 +1,28 @@
 using LinearAlgebra
 using Statistics
 import TensorKit.normalize!
+using JLD2
+import JLD2.save
+
+# Save and load ipeps and envs follow the JLD2.jl convention.
+# JLD2 methods are:
+# using JLD2
+# save("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", ipeps, "envs", envs)
+# ipeps, envs = load("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", "envs")
+
+function save(ipeps::iPEPS, envs::iPEPSenv, Dir::String)
+     println("Saving ipeps and envs into Dir $Dir")
+     save(Dir, "ipeps", ipeps, "envs", envs)
+     return nothing
+end
+
+function save(ipeps::iPEPSΓΛ, Dir::String)
+     println("Saving ipeps (ΓΛ form) into Dir $Dir")
+     save(Dir, "ipeps", ipeps)
+     return nothing
+end
+
+
 """
 Modified form TensorKit/src/tensors/linalg.jl
 
