@@ -92,31 +92,35 @@ function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String},
     vals = Vector{Number}(undef, length(Gates))
     x1, y1 = site1
     x2, y2 = site2
-    if x1 == (x2 - 1 - Int(ceil((x2 - 1) / Lx) - 1) * Lx)  # 左上到右下的两个点.  顺序：CTTMMbarTTCMMbarMMbarTTMMbarTTC.
-        @tensor contractcheck = true ψ□ψ[pup1, pup4; pdn1, pdn4] :=
-            envs[x1, y1].corner.lt[CLTr1, CLTb1] * envs[x1, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
-            envs[x1, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x1, y1][TLupD1, TTupD1, pup1, rupD1, bupD1] *
-            ipeps[x1, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, pdn1] * envs[x2, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
-            envs[x1, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * envs[x2, y1].corner.rt[TTr2, CRTb2] *
-            envs[x1, y2].corner.lb[TLb3, CLBr3] * ipeps[x2, y1][rupD1, TTupD2, p2, rupD2, bupD2] *
-            ipeps[x2, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, p2] * ipeps[x1, y2][TLupD3, bupD1, p3, rupD3, bupD3] *
-            ipeps[x1, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, p3] * envs[x2, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
-            envs[x1, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x2, y2][rupD3, bupD2, pup4, rupD4, bupD4] *
-            ipeps[x2, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, pdn4] * envs[x2, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
-            envs[x2, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x2, y2].corner.rb[TBr4, TRb4]
+    if x1 == (x2 - 1 - Int(ceil((x2 - 1) / Lx) - 1) * Lx)  # 左上到右下的两个点. 这里调用 CTMRG 求环境的函数
+        QuR = get_QuR(ipeps, envs, x2, y1)  # [lχ, lupD, ldnD; bχ, bupD, bdnD]
+        QdL = get_QdL(ipeps, envs, x1, y2)  # [tχ, tupD, tdnD; rχ, rupD, rdnD]
+        @tensor QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
+            envs[x1, y1].transfer.t[rχin, rχ, bupDin, rupD] * envs[x1, y1].corner.lt[rχin, bχin] *
+            envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * ipeps[x1, y1][rupDin, bupDin, pup1, rupMD, bupMD] *
+            ipeps[x1, y1]'[rdnMD, bdnMD, rdnD, rupD, pdn1]
+        @tensor QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
+            envs[x2, y2].corner.rb[lχin, tχin] * envs[x2, y2].transfer.r[lupMDin, ldnDin, tχ, tχin] *
+            envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * ipeps[x2, y2]'[ldnDin, tdnDin, ldnD, tdnD, pdn4] *
+            ipeps[x2, y2][lupD, tupD, pup4, lupMDin, tupDin]
+        @tensor ψ□ψ[pup1, pup4; pdn1, pdn4] :=
+            QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
+            QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
-    elseif x1 == (x2 + 1 - Int(ceil((x2 + 1) / Lx) - 1) * Lx)  # 右上到左下的两个点
-        @tensor contractcheck = true ψ□ψ[pup2, pup3; pdn2, pdn3] :=
-            envs[x2, y1].corner.lt[CLTr1, CLTb1] * envs[x2, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
-            envs[x2, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x2, y1][TLupD1, TTupD1, p1, rupD1, bupD1] *
-            ipeps[x2, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, p1] * envs[x1, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
-            envs[x2, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * envs[x1, y1].corner.rt[TTr2, CRTb2] *
-            envs[x2, y2].corner.lb[TLb3, CLBr3] * ipeps[x1, y1][rupD1, TTupD2, pup2, rupD2, bupD2] *
-            ipeps[x1, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, pdn2] * ipeps[x2, y2][TLupD3, bupD1, pup3, rupD3, bupD3] *
-            ipeps[x2, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, pdn3] * envs[x1, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
-            envs[x2, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x1, y2][rupD3, bupD2, p4, rupD4, bupD4] *
-            ipeps[x1, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, p4] * envs[x1, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
-            envs[x1, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x1, y2].corner.rb[TBr4, TRb4]
+    elseif x1 == (x2 + 1 - Int(ceil((x2 + 1) / Lx) - 1) * Lx)  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
+        QuL = get_QuL(ipeps, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
+        QdR = get_QdR(ipeps, envs, x1, y2)  # [lχ, lupD, ldnD, tχ, tupD, tdnD]
+        @tensor QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
+            envs[x1, y1].corner.rt[lχin, bχin] * envs[x1, y1].transfer.t[lχ, lχin, bupDin, bdnDin] *
+            envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * ipeps[x1, y1][lupD, bupDin, pup2, lupDin, bupD] *
+            ipeps[x1, y1]'[ldnDin, bdnD, ldnD, bdnDin, pdn2]
+        @tensor QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
+            envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
+            envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * ipeps[x2, y2]'[rdnD, tdnDin, rdnDin, tdnD, pup3] *
+            ipeps[x2, y2][rupDin, tupD, pdn3, rupD, tupDin]
+        @tensor ψ□ψ[pup2, pup3; pdn2, pdn3] :=
+            QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
+            QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     else
         error("check input sites")
@@ -129,3 +133,28 @@ function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String},
     rslt = Dict(Gates[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
     return rslt
 end
+
+# 这样全都放一起 contract 会爆内存
+# @tensor contractcheck = true costcheck = warn ψ□ψ[pup1, pup4; pdn1, pdn4] :=
+#     envs[x1, y1].corner.lt[CLTr1, CLTb1] * envs[x1, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
+#     envs[x1, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x1, y1][TLupD1, TTupD1, pup1, rupD1, bupD1] *
+#     ipeps[x1, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, pdn1] * envs[x2, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
+#     envs[x2, y1].corner.rt[TTr2, CRTb2] * ipeps[x2, y1][rupD1, TTupD2, p2, rupD2, bupD2] *
+#     ipeps[x2, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, p2] * envs[x2, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
+#     envs[x1, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * ipeps[x1, y2][TLupD3, bupD1, p3, rupD3, bupD3] *
+#     ipeps[x1, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, p3] * envs[x1, y2].corner.lb[TLb3, CLBr3] *
+#     envs[x1, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x2, y2][rupD3, bupD2, pup4, rupD4, bupD4] *
+#     ipeps[x2, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, pdn4] * envs[x2, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
+#     envs[x2, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x2, y2].corner.rb[TBr4, TRb4]
+
+# @tensor contractcheck = true costcheck = warn ψ□ψ[pup2, pup3; pdn2, pdn3] :=
+# envs[x2, y1].corner.lt[CLTr1, CLTb1] * envs[x2, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
+# envs[x2, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x2, y1][TLupD1, TTupD1, p1, rupD1, bupD1] *
+# ipeps[x2, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, p1] * envs[x1, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
+# envs[x2, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * envs[x1, y1].corner.rt[TTr2, CRTb2] *
+# envs[x2, y2].corner.lb[TLb3, CLBr3] * ipeps[x1, y1][rupD1, TTupD2, pup2, rupD2, bupD2] *
+# ipeps[x1, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, pdn2] * ipeps[x2, y2][TLupD3, bupD1, pup3, rupD3, bupD3] *
+# ipeps[x2, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, pdn3] * envs[x1, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
+# envs[x2, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x1, y2][rupD3, bupD2, p4, rupD4, bupD4] *
+# ipeps[x1, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, p4] * envs[x1, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
+# envs[x1, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x1, y2].corner.rb[TBr4, TRb4]

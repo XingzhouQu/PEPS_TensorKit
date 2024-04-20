@@ -10,9 +10,11 @@ import JLD2.save
 # save("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", ipeps, "envs", envs)
 # ipeps, envs = load("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", "envs")
 
-function save(ipeps::iPEPS, envs::iPEPSenv, Dir::String)
-     println("Saving ipeps and envs into Dir $Dir")
-     save(Dir, "ipeps", ipeps, "envs", envs)
+function save(ipeps::iPEPS, envs::iPEPSenv, para::Dict{Symbol,Any}, Dir::String)
+     println("-----------------------------------------")
+     println("Saving ipeps, envs and para into Dir $Dir")
+     println("-----------------------------------------")
+     save(Dir, "ipeps", ipeps, "envs", envs, "para", para)
      return nothing
 end
 
