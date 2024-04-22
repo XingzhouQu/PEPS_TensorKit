@@ -10,7 +10,7 @@ import JLD2.save
 # save("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", ipeps, "envs", envs)
 # ipeps, envs = load("/home/tcmp2/JuliaProjects/testSave.jld2", "ipeps", "envs")
 
-function save(ipeps::iPEPS, envs::iPEPSenv, para::Dict{Symbol,Any}, Dir::String)
+function save(ipeps::T, envs::iPEPSenv, para::Dict{Symbol,Any}, Dir::String) where {T<:Union{iPEPS,iPEPSΓΛ}}
      println("-----------------------------------------")
      println("Saving ipeps, envs and para into Dir $Dir")
      println("-----------------------------------------")
@@ -18,9 +18,9 @@ function save(ipeps::iPEPS, envs::iPEPSenv, para::Dict{Symbol,Any}, Dir::String)
      return nothing
 end
 
-function save(ipeps::iPEPSΓΛ, Dir::String)
+function save(ipeps::iPEPSΓΛ, para::Dict{Symbol,Any}, Dir::String)
      println("Saving ipeps (ΓΛ form) into Dir $Dir")
-     save(Dir, "ipeps", ipeps)
+     save(Dir, "ipeps", ipeps, "para", para)
      return nothing
 end
 
