@@ -48,7 +48,7 @@ end
 
 function get_op_Heisenberg(tag::String, para::Dict{Symbol,Any})
     if tag == "hij"
-        return Heisenberg_hij(para)
+        return Heisenberg_hij(para)[1]
     elseif tag == "hijNN"
         return J1J2_Heisenberg_hij(para)[1]
     elseif tag == "hijNNN"

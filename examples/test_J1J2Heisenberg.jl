@@ -15,21 +15,21 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J1] = 1.0
-    para[:J2] = 0.8
+    para[:J2] = 0.3
     para[:τlis] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
     para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 80  # env bond dimension
+    para[:χ] = 60  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:Etol] = 1e-11  # simple update 能量差小于这个数就可以继续增大步长
+    para[:Etol] = 0.001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
     pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
-    aspacelr = Rep[U₁](0 => 1, 1 // 2 => 1, -1 // 2 => 1, 1 => 1, -1 => 1)
-    aspacetb = Rep[U₁](0 => 1, 1 // 2 => 1, -1 // 2 => 1, 1 => 1, -1 => 1)
+    aspacelr = Rep[U₁](0 => 2, 1 // 2 => 1, -1 // 2 => 1)
+    aspacetb = Rep[U₁](0 => 2, 1 // 2 => 1, -1 // 2 => 1)
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update

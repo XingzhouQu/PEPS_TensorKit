@@ -28,12 +28,12 @@ function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,A
             println("=========== Step τ=$τ, iteration $it, total iteration $itsum =======")
             println()
             # ======== 提前终止循环的情况 ===========
-            # if abs((E - Ebefore) / Ebefore) < para[:Etol]
-            #     Ebefore = E
-            #     println("!! Energy converge. Reduce imaginary time step")
-            #     break
-            # end
-            # Ebefore = E
+            if abs((E - Ebefore) / Ebefore) < para[:Etol] * τ^2
+                Ebefore = E
+                println("!! Energy converge. Reduce imaginary time step")
+                break
+            end
+            Ebefore = E
             flush(stdout)
         end
     end

@@ -14,11 +14,14 @@ include("../Cal_Obs_fSU2/Cal_Obs.jl")
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
-    para[:τlis] = [1.0, 0.1, 0.01, 0.001, 0.0001]
+    para[:τlis] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.001, 0.0001]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 12  # Dkept in the simple udate
-    para[:Etol] = 1e-8  # simple update 能量差小于这个数就可以继续增大步长
+    para[:Dk] = 8  # Dkept in the simple udate
+    para[:χ] = 100  # env bond dimension
+    para[:CTMit] = 20  # CTMRG iteration times
+    para[:Etol] = 0.0001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
+    para[:NNNmethod] = :bond
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
 
     pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
