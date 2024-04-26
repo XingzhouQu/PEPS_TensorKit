@@ -62,7 +62,7 @@ function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
 end
 
 """
-return √S. For diag SVD spectrum only.
+return √S. For diagnoal TensorMap S only.
 """
 function sqrt4diag(t::AbstractTensorMap)
      cod = codomain(t)
@@ -79,6 +79,36 @@ function sqrt4diag(t::AbstractTensorMap)
           for (c, b) in blocks(t)
                bp = diag(b)
                data[c] = diagm(sqrt.(bp))
+          end
+          return TensorMap(data, domain(t) ← codomain(t))
+     end
+end
+
+"""
+replace the negative values by zero in a diagnoal tensormap.
+
+Also make sure the input is real.
+"""
+function neg2zero(t::AbstractTensorMap)
+     cod = codomain(t)
+     dom = domain(t)
+     TP = eltype(t)
+     for c in union(blocksectors(cod), blocksectors(dom))
+          blockdim(cod, c) == blockdim(dom, c) ||
+               throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+     end
+     if sectortype(t) === Trivial
+          tp = diag(block(t, Trivial()))
+          @assert isreal(tp)
+          tp[tp.<zero(TP)] .= zero(TP)  # replace all the negative values by zero
+          return TensorMap(diagm(tp), domain(t) ← codomain(t))
+     else
+          data = empty(t.data)
+          for (c, b) in blocks(t)
+               bp = diag(b)
+               @assert isreal(bp)
+               bp[bp.<zero(TP)] .= zero(TP)
+               data[c] = diagm(bp)
           end
           return TensorMap(data, domain(t) ← codomain(t))
      end

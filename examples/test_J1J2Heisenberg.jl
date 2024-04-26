@@ -19,10 +19,10 @@ function main()
     para[:τlis] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 60  # env bond dimension
+    para[:Dk] = 9  # Dkept in the simple udate
+    para[:χ] = 100  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:Etol] = 0.001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
+    para[:Etol] = 0.0001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
@@ -30,8 +30,8 @@ function main()
     pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
     aspacelr = Rep[U₁](0 => 2, 1 // 2 => 1, -1 // 2 => 1)
     aspacetb = Rep[U₁](0 => 2, 1 // 2 => 1, -1 // 2 => 1)
-    Lx = 2
-    Ly = 2
+    Lx = 4
+    Ly = 4
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, J1J2_Heisenberg_hij, para)
