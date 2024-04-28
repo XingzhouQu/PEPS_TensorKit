@@ -9,94 +9,217 @@ function get_Efull_fix_gauge(X::TensorMap, Y::TensorMap, envs::iPEPSenv, site1::
     x2, y2 = site2
     if x2 == x1 + 1
         @tensor Ql[rχt, ElDup; ElDdn, rχb] :=
-            envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχt, tupDin, tdnDin] *  
-            X[lupDin, tupDin, bupDin, ElDup] * X'[ElDdn, ldnDin, tdnDin, bdnDin] * 
-            envs[x1, y1].transfer.l[bχin, bχinin, lupDin, ldnDin] * envs[x1, y1].corner.lb[bχinin, rχinin] * 
+            envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχt, tupDin, tdnDin] *
+            X[lupDin, tupDin, bupDin, ElDup] * X'[ElDdn, ldnDin, tdnDin, bdnDin] *
+            envs[x1, y1].transfer.l[bχin, bχinin, lupDin, ldnDin] * envs[x1, y1].corner.lb[bχinin, rχinin] *
             envs[x1, y1].transfer.b[rχinin, bupDin, bdnDin, rχb]
         @tensor Qr[lχt, ErDup; ErDdn, lχb] :=
-            envs[x2, y2].corner.rt[lχin, bχin] * envs[x2, y2].transfer.t[lχt, lχin, tupDin, tdnDin] *  
-            Y[ErDup, tupDin, rupDin, bupDin] * Y'[tdnDin, rdnDin, bdnDin, ErDdn] * 
-            envs[x2, y2].transfer.r[rupDin, rdnDin, bχin, bχinin] * envs[x2, y2].corner.rb[lχinin, bχinin] * 
+            envs[x2, y2].corner.rt[lχin, bχin] * envs[x2, y2].transfer.t[lχt, lχin, tupDin, tdnDin] *
+            Y[ErDup, tupDin, rupDin, bupDin] * Y'[tdnDin, rdnDin, bdnDin, ErDdn] *
+            envs[x2, y2].transfer.r[rupDin, rdnDin, bχin, bχinin] * envs[x2, y2].corner.rb[lχinin, bχinin] *
             envs[x2, y2].transfer.b[lχb, bupDin, bdnDin, lχinin]
         @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] := Ql[rχt, ElDup; ElDdn, rχb] * Qr[rχt, ErDup, ErDdn, rχb]
         Efull, L, R, Linv, Rinv = fix_local_gauge!(Efull)
+        return Efull, L, R, Linv, Rinv
     elseif y2 == y1 + 1
-        
+        @tensor Qt[bχl, EtDup; EtDdn, bχr] :=
+            envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχinin, tupDin, tdnDin] *
+            X[lupDin, tupDin, rupDin, EtDup] * X'[EtDdn, ldnDin, tdnDin, rdnDin] *
+            envs[x1, y1].transfer.l[bχin, bχl, lupDin, ldnDin] * envs[x1, y1].corner.rt[rχinin, bχinin] *
+            envs[x1, y1].transfer.r[rupDin, rdnDin, bχinin, bχr]
+        @tensor Qb[tχl, EbDup; EbDdn, tχr] :=
+            envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.b[rχin, bupDin, bdnDin, rχinin] *
+            Y[EbDup, lupDin, rupDin, bupDin] * Y'[ldnDin, rdnDin, bdnDin, EbDdn] *
+            envs[x2, y2].transfer.l[tχl, tχin, lupDin, ldnDin] * envs[x2, y2].corner.rb[rχinin, tχinin] *
+            envs[x2, y2].transfer.r[rupDin, rdnDin, tχr, tχinin]
+        @tensor Efull[EtDup, EbDup; EtDdn, EbDdn] := Qt[bχl, EtDup; EtDdn, bχr] * Qb[bχl, EbDup; EbDdn, bχr]
+        Efull, T, B, Tinv, Binv = fix_local_gauge!(Efull)
+        return Efull, T, B, Tinv, Binv
     else
         error("check input sites")
     end
-    return Efull, L, R
 end
 
 
 function fix_local_gauge!(Efull::TensorMap)
-    @assert ishermitian(Efull) "Efull should be Hermitian"
+    # 左右/上下bond更新都直接用这个函数, 只要把index理解为 l->t, r->b 即可
     ε, W = eigh(Efull)
     ε = sqrt4diag(neg2zero(ε))  # √ε₊
     @tensor Z[ElDup, ErDup; mid] := W[ElDup, ErDup, in] * ε[in, mid]
     _, R = leftorth(Z, ((1, 3), (2,)))
-    L, _ = rightorth(Z, ((1, ), (2, 3)))
+    L, _ = rightorth(Z, ((1,), (2, 3)))
     Linv = inv(L)
     Rinv = inv(R)
-    @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] = Efull[ElDupin, ErDupin; ElDdnin, ErDdnin] * 
-        Linv[ElDup, ElDupin] * Linv'[ElDdnin, ElDdn] * Rinv[ErDupin, ErDup] * Rinv'[ErDup, ErDdnin]
+    @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] =
+        Efull[ElDupin, ErDupin; ElDdnin, ErDdnin] * Linv[ElDup, ElDupin] * Linv'[ElDdnin, ElDdn] *
+        Rinv[ErDupin, ErDup] * Rinv'[ErDup, ErDdnin]
+    @assert ishermitian(Efull) "Efull should be Hermitian"
     return Efull, L, R, Linv, Rinv
 end
 
+"""
+    `Ebarfull`: 环境 (fix local-gauge) 
+    `L, R`: gauge tensor
+    `vl, wr`: 初始的 bond tensor, 不带 guage
+    `gateNN`: 两体哈密顿量
+    return: `vlnew, wrnew` 更新后的bond tensor, 带着 gauge
+    (See: SciPost Phys. Lect.Notes 25(2021) & PRB 92,035142(2015))
+"""
+function FFU_update_bond_lr(Ebarfull::T, L::T, R::T, vl::T, wr::T, gateNN::T, Dk::Int; tol, maxiter, verbose) where {T::TensorMap}
+    d0 = dold = zero(scalartype(vl))
+    # 作用 Trotter Gate, 下面这一行还没有加gauge
+    @tensor ṽw̃[ElDup, pl; pr, ErDup] := vl[ElDup, plin, mid] * gateNN[pl, pr, plin, prin] * wr[mid, prin, ErDup]
+    # 用简单的 SVD 初始化vp, wp, 加入local gauge
+    vp, S, wp, _ = tsvd(ṽw̃, ((1, 2), (3, 4)), trunc=truncdim(Dk))
+    @tensor vp[(ElDup); (pl, mid)] = vp[ElDupin, pl, Sl] * sqrt4diag(S)[Sl, mid] * L[ElDup, ElDupin]
+    @tensor wp[mid, pr; ErDup] = sqrt4diag(S)[mid, Sr] * wp[Sr, pr, ErDupin] * R[ErDupin, ErDup]
+    # 损失函数的通用部分, 加入 local gauge. 这里覆盖了 ṽw̃
+    @tensor ṽw̃[ElDup, pl; pr, ErDup] = ṽw̃[ElDupin, pl, pr, ErDupin] * L[ElDup, ElDupin] * R[ErDupin, ErDup]
+    @tensor Eṽw̃[pl, pr, ElDdn, ErDdn] := ṽw̃[ElDup, pl, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn]
+    @tensor Eṽdagw̃dag[pr, ErDup; ElDup, pl] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * ṽw̃'[pr, ErDdn, ElDdn, pl]
+    # 迭代更新vp, wp
+    for it in 1:maxiter
+        # 固定 wp 更新 vp
+        @tensor S4v[pl, ElDdn, Srb] := Eṽw̃[pl, pr, ElDdn, ErDdn] * wp'[ErDdn, Srb, pr]
+        @tensor R4v[ElDup, Srt; ElDdn, Srb] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * wp'[ErDdn, Srb, pr] * wp[Srt, pr, ErDup]
+        @tensor vptmp[(ElDup); (pl, Srt)] := inv(R4v)[ElDup, Srt, ElDdn, Srb] * S4v[pl, ElDdn, Srb]
+        vp = vptmp
+        # 固定 vp 更新 wp
+        @tensor S4w[pr, ErDdn, Srb] := Eṽw̃[pl, pr, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn]
+        @tensor R4w[ErDup, Srt; ErDdn, Srb] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * vp[ElDup, pl, Srt]
+        @tensor wptmp[Srt, pr; ErDup] := inv(R4w)[ErDup, Srt; ErDdn, Srb] * S4w[pr, ErDdn, Srb]
+        wp = wptmp
+        # 计算损失函数, ψp -> ψ' and ψt -> ψ̃
+        @tensor ψpψp[] := vp[ElDup, pl, Srt] * wp[Srt, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * wp'[ErDdn, Srb, pr]
+        @tensor ψtψt[] := Eṽw̃[pl, pr, ElDdn, ErDdn] * ṽw̃'[pr, ErDdn, ElDdn, pl]
+        @tensor ψtψp[] := Eṽw̃[pl, pr, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * wp'[ErDdn, Srb, pr]
+        @tensor ψpψt[] := Eṽdagw̃dag[pr, ErDup; ElDup, pl] * vp[ElDup, pl, Srt] * wp[Srt, pr, ErDup]
+        dnew = scalar(ψpψp) + scalar(ψtψt) - scalar(ψtψp) - scalar(ψpψt)
+        if it == 1
+            d0 = dnew
+            verbose > 1 ? println("FFU iteration $it. Tolerence $tol") : nothing
+        else
+            cost = abs(dnew - dold) / d0
+            verbose > 1 ? println("FFU iteration $it, Cost function $cost.") : nothing
+            cost < tol ? break : nothing
+        end
+        dold = dnew
+    end
+    return vp, wp  # 这两个是带着 gauge 的
+end
+
+
+function FFU_update_bond_tb(Ebarfull::TP, T::TP, B::TP, vt::TP, wb::TP, gateNN::TP, Dk::Int; tol, maxiter, verbose) where {TP::TensorMap}
+    d0 = dold = zero(scalartype(vl))
+    # 作用 Trotter Gate, 下面这一行还没有加gauge
+    @tensor ṽw̃[EtDup, pt; pb, EbDup] := vt[EtDup, ptin, mid] * gateNN[pt, pb, ptin, pbin] * wb[mid, pbin, EbDup]
+    # 用简单的 SVD 初始化vp, wp, 加入local gauge
+    vp, S, wp, _ = tsvd(ṽw̃, ((1, 2), (3, 4)), trunc=truncdim(Dk))
+    @tensor vp[(EtDup); (pt, mid)] = vp[EtDupin, pt, St] * sqrt4diag(S)[St, mid] * T[EtDup, EtDupin]
+    @tensor wp[mid, pb; EbDup] = sqrt4diag(S)[mid, Sb] * wp[Sb, pb, EbDupin] * B[EbDupin, EbDup]
+    # 损失函数的通用部分, 加入 local gauge. 这里覆盖了 ṽw̃
+    @tensor ṽw̃[EtDup, pt; pb, EbDup] = ṽw̃[EtDupin, pt, pb, EbDupin] * T[EtDup, EtDupin] * B[EbDupin, EbDup]
+    @tensor Eṽw̃[pt, pb, EtDdn, EbDdn] := ṽw̃[EtDup, pt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn]
+    @tensor Eṽdagw̃dag[pb, EbDup; EtDup, pt] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * ṽw̃'[pb, EbDdn, EtDdn, pt]
+    # 迭代更新vp, wp
+    for it in 1:maxiter
+        # 固定 wp 更新 vp
+        @tensor S4v[pt, EtDdn, Srb] := Eṽw̃[pt, pb, EtDdn, EbDdn] * wp'[EbDdn, Srb, pb]
+        @tensor R4v[EtDup, Srt; EtDdn, Srb] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * wp'[EbDdn, Srb, pb] * wp[Srt, pb, EbDup]
+        @tensor vptmp[(EtDup); (pt, Srt)] := inv(R4v)[EtDup, Srt, EtDdn, Srb] * S4v[pt, EtDdn, Srb]
+        vp = vptmp
+        # 固定 vp 更新 wp
+        @tensor S4w[pb, EbDdn, Srb] := Eṽw̃[pt, pb, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn]
+        @tensor R4w[EbDup, Srt; EbDdn, Srb] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * vp[EtDup, pt, Srt]
+        @tensor wptmp[Srt, pb; EbDup] := inv(R4w)[EbDup, Srt; EbDdn, Srb] * S4w[pb, EbDdn, Srb]
+        wp = wptmp
+        # 计算损失函数, ψp -> ψ' and ψt -> ψ̃
+        @tensor ψpψp[] := vp[EtDup, pt, Srt] * wp[Srt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * wp'[EbDdn, Srb, pb]
+        @tensor ψtψt[] := Eṽw̃[pt, pb, EtDdn, EbDdn] * ṽw̃'[pb, EbDdn, EtDdn, pt]
+        @tensor ψtψp[] := Eṽw̃[pt, pb, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * wp'[EbDdn, Srb, pb]
+        @tensor ψpψt[] := Eṽdagw̃dag[pb, EbDup; EtDup, pt] * vp[EtDup, pt, Srt] * wp[Srt, pb, EbDup]
+        dnew = scalar(ψpψp) + scalar(ψtψt) - scalar(ψtψp) - scalar(ψpψt)
+        if it == 1
+            d0 = dnew
+            verbose > 1 ? println("FFU iteration $it. Tolerence $tol") : nothing
+        else
+            cost = abs(dnew - dold) / d0
+            verbose > 1 ? println("FFU iteration $it, Cost function $cost.") : nothing
+            cost < tol ? break : nothing
+        end
+        dold = dnew
+    end
+    return vp, wp  # 这两个是带着 gauge 的
+end
+
+"""
+    做完一次bond更新后, 随之更新一次环境. 直接调用CTMRG的函数
+"""
+function FFU_update_env_lr!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, χ::Int)
+    Lx = ipeps.Lx
+    for ii in xx:(Lx+xx-1)
+        error_List = update_env_left_2by2!(ipeps, envs, ii, χ)
+    end
+    for ii in (Lx+xx-1):-1:xx
+        error_List = update_env_right_2by2!(ipeps, envs, ii, χ)
+    end
+    return nothing
+end
+
+function FFU_update_env_tb!(ipeps::iPEPS, envs::iPEPSenv, yy::Int, χ::Int)
+    Ly = ipeps.Ly
+    for ii in yy:(Ly+yy-1)
+        error_List = update_env_top_2by2!(ipeps, envs, ii, χ)
+    end
+    for ii in (Ly+yy-1):-1:yy
+        error_List = update_env_bottom_2by2!(ipeps, envs, ii, χ)
+    end
+    return nothing
+end
 
 # ================================= 最近邻 ==============================================================
 """
-更新 `[xx, yy]` 与 `[xx+1, yy]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021)
+FFU: 更新 `[xx, yy]` 与 `[xx+1, yy]` 之间的 bond. (See: SciPost Phys. Lect.Notes 25(2021) AND PRB 92,035142(2015))
 """
-function bond_proj_lr!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap; tol=)
+function bond_proj_lr!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, χ::Int, gateNN::TensorMap; tol, maxiter, verbose)
     # 两次QR
     Xl, vl = leftorth(ipeps[xx, yy], ((1, 2, 5), (3, 4)))
     wr, Yr = rightorth(ipeps[xx+1, yy], ((1, 3), (2, 4, 5)))
-    # 作用 Trotter Gate
-    @tensor ṽw̃[(toX, pl, pr); (toY)] := vl[toX, plin, mid] * gateNN[pl, pr, plin, prin] * wr[mid, prin, toY]
-    # 求环境
-    Ebarfull, L, R = get_Efull_fix_gauge(Xl, Yr, envs, [xx, yy], [xx+1, yy])
-    @tensor Eṽw̃[] := L[] * ṽw̃[] * R[] * Ebarfull[]
+    # 求局域的环境
+    Ebarfull, L, R, Linv, Rinv = get_Efull_fix_gauge(Xl, Yr, envs, [xx, yy], [xx + 1, yy])
+    # 迭代更新这个bond
+    vlnew, wrnew = FFU_update_bond_lr(Ebarfull, L, R, vl, wr, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    # 新的两个 iPEPS 张量, 注意要把 gauge 去掉
+    @tensor TensorLnew[l, t, p; r, b] := vlnew[tov, p, r] * Linv[toLinv, tov] * Xl[l, t, b, toLinv]
+    @tensro TensorRnew[l, t, p; r, b] := wrnew[l, p, tow] * Rinv[tow, toRinv] * Yr[toRinv, t, r, b]
+    # 更新 iPEPS tensors
+    ipeps[xx+1, yy] = TensorRnew
+    ipeps[xx, yy] = TensorLnew
+    # 更新环境
+    FFU_update_env_lr!(ipeps, envs, xx, χ)
 
-    vnew, λnew, wnew, err = tsvd(ṽw̃, (1, 2), (3, 4); trunc=truncdim(Dk))
-    @tensor Γlnew[l, t, p; r, b] := Xl[le, te, be, toX] * vnew[toX, p, r] *
-                                    inv(ipeps[xx, yy].l)[l, le] * inv(ipeps[xx, yy].t)[t, te] * inv(ipeps[xx, yy].b)[be, b]
-    @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
-                                    inv(ipeps[xx+1, yy].r)[re, r] * inv(ipeps[xx+1, yy].b)[be, b]
-    # 更新 tensor, 注意这里要归一化
-    nrm = norm(λnew)
-    λnew = λnew / nrm
-    ipeps[xx+1, yy].Γ = Γrnew
-    ipeps[xx, yy].Γ = Γlnew
-    ipeps[xx+1, yy].l = λnew
-    ipeps[xx, yy].r = λnew
-    return err, nrm
+    return nothing
 end
 
 """
 更新 `[xx, yy]` 与 `[xx, yy+1]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021)
 """
-function bond_proj_tb!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap)
-    @tensor Γu[l, t, p; r, b] := ipeps[xx, yy].Γ[le, te, p, re, b] * ipeps[xx, yy].t[t, te] * ipeps[xx, yy].r[re, r] * ipeps[xx, yy].l[l, le]
-    @tensor Γd[l, t, p; r, b] := ipeps[xx, yy+1].Γ[le, t, p, re, be] * ipeps[xx, yy+1].l[l, le] * ipeps[xx, yy+1].r[re, r] *
-                                 ipeps[xx, yy+1].b[be, b]
+function bond_proj_tb!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap; tol, maxiter, verbose)
     # 两次QR
-    Xu, vu = leftorth(Γu, ((1, 2, 4), (3, 5)))
-    wd, Yd = rightorth(Γd, ((2, 3), (1, 4, 5)))
-    # 作用 Trotter Gate
-    @tensor mid[toX, pu, pd; toY] := vu[toX, puin, toV] * ipeps[xx, yy].b[toV, toW] * gateNN[pu, pd, puin, pdin] *
-                                     wd[toW, pdin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
-    @tensor Γdnew[l, t, p; r, b] := Yd[toY, le, re, be] * wnew[t, p, toY] *
-                                    inv(ipeps[xx, yy+1].l)[l, le] * inv(ipeps[xx, yy+1].r)[re, r] * inv(ipeps[xx, yy+1].b)[be, b]
-    @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *
-                                    inv(ipeps[xx, yy].r)[re, r] * inv(ipeps[xx, yy].l)[l, le]
-    # 更新 tensor, 注意这里要归一化
-    nrm = norm(λnew)
-    λnew = λnew / nrm
-    ipeps[xx, yy].b = λnew
-    ipeps[xx, yy+1].t = λnew
-    ipeps[xx, yy].Γ = Γunew
-    ipeps[xx, yy+1].Γ = Γdnew
-    return err, nrm
+    Xt, vt = leftorth(ipeps[xx, yy], ((1, 2, 4), (3, 5)))
+    wb, Yb = rightorth(ipeps[xx, yy+1], ((2, 3), (1, 4, 5)))
+    # 求环境
+    Ebarfull, T, B, Tinv, Binv = get_Efull_fix_gauge(Xt, Yb, envs, [xx, yy], [xx, yy + 1])
+    # 迭代更新这个bond
+    vtnew, wbnew = FFU_update_bond_tb(Ebarfull, T, B, vt, wb, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    # 新的两个 iPEPS 张量, 注意要把 gauge 去掉
+    @tensor TensorTnew[l, t, p; r, b] := vtnew[tov, p, b] * Tinv[toTinv, tov] * Xt[l, t, r, toTinv]
+    @tensro TensorBnew[l, t, p; r, b] := wbnew[t, p, tow] * Binv[tow, toBinv] * Yb[toBinv, l, r, b]
+    # 更新 iPEPS tensors
+    ipeps[xx, yy] = TensorTnew
+    ipeps[xx, yy+1] = TensorBnew
+    # 更新环境
+    FFU_update_env_tb!(ipeps, envs, yy, χ)
+
+    return nothing
 end

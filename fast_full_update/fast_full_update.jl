@@ -39,7 +39,7 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv,)
 end
 
 
-function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::Vector{TensorMap}; verbose=1)
+function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::Vector{TensorMap}; verbose=1, maxiter=10, tol=1e-8)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     errlis = Vector{Float64}(undef, 2 * length(gates) * Lx * Ly)  # 总的 bond 数
@@ -48,7 +48,7 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::V
     # ================= 最近邻相互作用 ==============
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx
-        err, nrm = bond_proj_lr!(ipeps, envs, xx, yy, Dk, gates[1])
+        err, nrm = bond_proj_lr!(ipeps, envs, xx, yy, Dk, gates[1]; tol=tol, verbose=verbose)
         verbose > 1 ? println("横向更新 [$xx, $yy], error=$err") : nothing
         errlis[Nb] = err
         prodNrm *= nrm
@@ -56,13 +56,13 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::V
     end
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
-        err, nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, gates[1])
+        err, nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, gates[1]; tol=tol, verbose=verbose)
         verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
         errlis[Nb] = err
         prodNrm *= nrm
         Nb += 1
     end
-    # ============= TODO 次近邻相互作用 =============
+    # ============= TODO FFU的次近邻相互作用 =============
     # if length(gates) >= 2
     #     for yy in 1:Ly, xx in 1:Lx
     #         errup1, errup2, errdn1, errdn2, nrmup1, nrmup2, nrmdn1, nrmdn2 = diag_proj_lu2rd!(ipeps, xx, yy, Dk, gates[2]; NNN=NNN)

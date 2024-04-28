@@ -85,7 +85,7 @@ function sqrt4diag(t::AbstractTensorMap)
 end
 
 """
-replace the negative values by zero in a diagnoal tensormap.
+Replace the negative values by zero in a diagnoal tensormap. i.e. so called "positive approximation" in PRB 92,035142(2015)
 
 Also make sure the input is real.
 """

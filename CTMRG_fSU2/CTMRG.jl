@@ -61,7 +61,6 @@ function update_env_left_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
-        # @assert space(projup)[4] == space(projdn)[1]'
     end
     # ------------------ 再更新环境 ----------------------
     for yy in 1:Ly
