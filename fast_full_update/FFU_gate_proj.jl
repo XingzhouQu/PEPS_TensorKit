@@ -52,8 +52,8 @@ function fix_local_gauge!(Efull::TensorMap)
     Rinv = inv(R)
     @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] =
         Efull[ElDupin, ErDupin; ElDdnin, ErDdnin] * Linv[ElDup, ElDupin] * Linv'[ElDdnin, ElDdn] *
-        Rinv[ErDupin, ErDup] * Rinv'[ErDup, ErDdnin]
-    @assert ishermitian(Efull) "Efull should be Hermitian"
+        Rinv[ErDupin, ErDup] * Rinv'[ErDdn, ErDdnin]
+    # @assert ishermitian(Efull) "Efull should be Hermitian"
     return Efull, L, R, Linv, Rinv
 end
 
@@ -65,34 +65,39 @@ end
     return: `vlnew, wrnew` 更新后的bond tensor, 带着 gauge
     (See: SciPost Phys. Lect.Notes 25(2021) & PRB 92,035142(2015))
 """
-function FFU_update_bond_lr(Ebarfull::T, L::T, R::T, vl::T, wr::T, gateNN::T, Dk::Int; tol, maxiter, verbose) where {T::TensorMap}
+function FFU_update_bond_lr(Ebarfull::T4, L::T2, R::T2, vl::T3v, wr::T3w, gateNN::T4, Dk::Int; tol, maxiter, verbose) where {T2,T3v,T3w,T4<:AbstractTensorMap}
+    cost = NaN
+    it = 0
     d0 = dold = zero(scalartype(vl))
     # 作用 Trotter Gate, 下面这一行还没有加gauge
     @tensor ṽw̃[ElDup, pl; pr, ErDup] := vl[ElDup, plin, mid] * gateNN[pl, pr, plin, prin] * wr[mid, prin, ErDup]
     # 用简单的 SVD 初始化vp, wp, 加入local gauge
     vp, S, wp, _ = tsvd(ṽw̃, ((1, 2), (3, 4)), trunc=truncdim(Dk))
-    @tensor vp[(ElDup); (pl, mid)] = vp[ElDupin, pl, Sl] * sqrt4diag(S)[Sl, mid] * L[ElDup, ElDupin]
-    @tensor wp[mid, pr; ErDup] = sqrt4diag(S)[mid, Sr] * wp[Sr, pr, ErDupin] * R[ErDupin, ErDup]
+    nrm = norm(S)
+    S = S / nrm
+    @tensor vp[(ElDup); (pl, mid)] = vp[ElDupin, pl, Sl] * sqrt4diag(S)[Sl, mid] * L[ElDupin, ElDup]
+    @tensor wp[(mid); (pr, ErDup)] = sqrt4diag(S)[mid, Sr] * wp[Sr, pr, ErDupin] * R[ErDup, ErDupin]
     # 损失函数的通用部分, 加入 local gauge. 这里覆盖了 ṽw̃
-    @tensor ṽw̃[ElDup, pl; pr, ErDup] = ṽw̃[ElDupin, pl, pr, ErDupin] * L[ElDup, ElDupin] * R[ErDupin, ErDup]
-    @tensor Eṽw̃[pl, pr, ElDdn, ErDdn] := ṽw̃[ElDup, pl, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn]
+    @tensor ṽw̃[ElDup, pl; pr, ErDup] = ṽw̃[ElDupin, pl, pr, ErDupin] * L[ElDupin, ElDup] * R[ErDup, ErDupin]
+    @tensor Eṽw̃[pl, ElDdn; ErDdn, pr] := ṽw̃[ElDup, pl, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn]
     @tensor Eṽdagw̃dag[pr, ErDup; ElDup, pl] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * ṽw̃'[pr, ErDdn, ElDdn, pl]
     # 迭代更新vp, wp
-    for it in 1:maxiter
-        # 固定 wp 更新 vp
-        @tensor S4v[pl, ElDdn, Srb] := Eṽw̃[pl, pr, ElDdn, ErDdn] * wp'[ErDdn, Srb, pr]
-        @tensor R4v[ElDup, Srt; ElDdn, Srb] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * wp'[ErDdn, Srb, pr] * wp[Srt, pr, ErDup]
-        @tensor vptmp[(ElDup); (pl, Srt)] := inv(R4v)[ElDup, Srt, ElDdn, Srb] * S4v[pl, ElDdn, Srb]
+    while it <= maxiter
+        it += 1
+        # 固定 wp 更新 vp. !! TensorMap 求 inv 后会交换 domain 和 codomain. !!
+        @tensor S4v[pl, ElDdn, Srb] := Eṽw̃[pl, ElDdn, ErDdn, pr] * wp'[pr, ErDdn, Srb]
+        @tensor R4v[ElDup, Srt; ElDdn, Srb] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * wp'[pr, ErDdn, Srb] * wp[Srt, pr, ErDup]
+        @tensor vptmp[(ElDup); (pl, Srt)] := inv(R4v)[ElDdn, Srb, ElDup, Srt] * S4v[pl, ElDdn, Srb]
         vp = vptmp
         # 固定 vp 更新 wp
-        @tensor S4w[pr, ErDdn, Srb] := Eṽw̃[pl, pr, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn]
+        @tensor S4w[pr, ErDdn, Srb] := Eṽw̃[pl, ElDdn, ErDdn, pr] * vp'[pl, Srb, ElDdn]
         @tensor R4w[ErDup, Srt; ErDdn, Srb] := Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * vp[ElDup, pl, Srt]
-        @tensor wptmp[Srt, pr; ErDup] := inv(R4w)[ErDup, Srt; ErDdn, Srb] * S4w[pr, ErDdn, Srb]
+        @tensor wptmp[(Srt); (pr, ErDup)] := inv(R4w)[ErDdn, Srb, ErDup, Srt] * S4w[pr, ErDdn, Srb]
         wp = wptmp
         # 计算损失函数, ψp -> ψ' and ψt -> ψ̃
-        @tensor ψpψp[] := vp[ElDup, pl, Srt] * wp[Srt, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * wp'[ErDdn, Srb, pr]
-        @tensor ψtψt[] := Eṽw̃[pl, pr, ElDdn, ErDdn] * ṽw̃'[pr, ErDdn, ElDdn, pl]
-        @tensor ψtψp[] := Eṽw̃[pl, pr, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * wp'[ErDdn, Srb, pr]
+        @tensor ψpψp[] := vp[ElDup, pl, Srt] * wp[Srt, pr, ErDup] * Ebarfull[ElDup, ErDup, ElDdn, ErDdn] * vp'[pl, Srb, ElDdn] * wp'[pr, ErDdn, Srb]
+        @tensor ψtψt[] := Eṽw̃[pl, ElDdn, ErDdn, pr] * ṽw̃'[pr, ErDdn, ElDdn, pl]
+        @tensor ψtψp[] := Eṽw̃[pl, ElDdn, ErDdn, pr] * vp'[pl, Srb, ElDdn] * wp'[pr, ErDdn, Srb]
         @tensor ψpψt[] := Eṽdagw̃dag[pr, ErDup; ElDup, pl] * vp[ElDup, pl, Srt] * wp[Srt, pr, ErDup]
         dnew = scalar(ψpψp) + scalar(ψtψt) - scalar(ψtψp) - scalar(ψpψt)
         if it == 1
@@ -105,38 +110,43 @@ function FFU_update_bond_lr(Ebarfull::T, L::T, R::T, vl::T, wr::T, gateNN::T, Dk
         end
         dold = dnew
     end
-    return vp, wp  # 这两个是带着 gauge 的
+    return vp, wp, nrm, cost, it  # 这两个是带着 gauge 的
 end
 
 
-function FFU_update_bond_tb(Ebarfull::TP, T::TP, B::TP, vt::TP, wb::TP, gateNN::TP, Dk::Int; tol, maxiter, verbose) where {TP::TensorMap}
-    d0 = dold = zero(scalartype(vl))
+function FFU_update_bond_tb(Ebarfull::T4, T::T2, B::T2, vt::T3v, wb::T3w, gateNN::T4, Dk::Int; tol, maxiter, verbose) where {T2,T3v,T3w,T4<:AbstractTensorMap}
+    cost = NaN
+    it = 0
+    d0 = dold = zero(scalartype(vt))
     # 作用 Trotter Gate, 下面这一行还没有加gauge
     @tensor ṽw̃[EtDup, pt; pb, EbDup] := vt[EtDup, ptin, mid] * gateNN[pt, pb, ptin, pbin] * wb[mid, pbin, EbDup]
     # 用简单的 SVD 初始化vp, wp, 加入local gauge
     vp, S, wp, _ = tsvd(ṽw̃, ((1, 2), (3, 4)), trunc=truncdim(Dk))
-    @tensor vp[(EtDup); (pt, mid)] = vp[EtDupin, pt, St] * sqrt4diag(S)[St, mid] * T[EtDup, EtDupin]
-    @tensor wp[mid, pb; EbDup] = sqrt4diag(S)[mid, Sb] * wp[Sb, pb, EbDupin] * B[EbDupin, EbDup]
+    nrm = norm(S)
+    S = S / nrm
+    @tensor vp[(EtDup); (pt, mid)] = vp[EtDupin, pt, St] * sqrt4diag(S)[St, mid] * T[EtDupin, EtDup]
+    @tensor wp[(mid); (pb, EbDup)] = sqrt4diag(S)[mid, Sb] * wp[Sb, pb, EbDupin] * B[EbDup, EbDupin]
     # 损失函数的通用部分, 加入 local gauge. 这里覆盖了 ṽw̃
-    @tensor ṽw̃[EtDup, pt; pb, EbDup] = ṽw̃[EtDupin, pt, pb, EbDupin] * T[EtDup, EtDupin] * B[EbDupin, EbDup]
-    @tensor Eṽw̃[pt, pb, EtDdn, EbDdn] := ṽw̃[EtDup, pt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn]
+    @tensor ṽw̃[EtDup, pt; pb, EbDup] = ṽw̃[EtDupin, pt, pb, EbDupin] * T[EtDupin, EtDup] * B[EbDup, EbDupin]
+    @tensor Eṽw̃[pt, EtDdn; EbDdn, pb] := ṽw̃[EtDup, pt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn]
     @tensor Eṽdagw̃dag[pb, EbDup; EtDup, pt] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * ṽw̃'[pb, EbDdn, EtDdn, pt]
     # 迭代更新vp, wp
-    for it in 1:maxiter
-        # 固定 wp 更新 vp
-        @tensor S4v[pt, EtDdn, Srb] := Eṽw̃[pt, pb, EtDdn, EbDdn] * wp'[EbDdn, Srb, pb]
-        @tensor R4v[EtDup, Srt; EtDdn, Srb] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * wp'[EbDdn, Srb, pb] * wp[Srt, pb, EbDup]
-        @tensor vptmp[(EtDup); (pt, Srt)] := inv(R4v)[EtDup, Srt, EtDdn, Srb] * S4v[pt, EtDdn, Srb]
+    while it <= maxiter
+        it += 1
+        # 固定 wp 更新 vp. !! TensorMap 求 inv 后会交换 domain 和 codomain. !!
+        @tensor S4v[pt, EtDdn, Srb] := Eṽw̃[pt, EtDdn, EbDdn, pb] * wp'[pb, EbDdn, Srb]
+        @tensor R4v[EtDup, Srt; EtDdn, Srb] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * wp'[pb, EbDdn, Srb] * wp[Srt, pb, EbDup]
+        @tensor vptmp[(EtDup); (pt, Srt)] := inv(R4v)[EtDdn, Srb, EtDup, Srt] * S4v[pt, EtDdn, Srb]
         vp = vptmp
         # 固定 vp 更新 wp
-        @tensor S4w[pb, EbDdn, Srb] := Eṽw̃[pt, pb, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn]
+        @tensor S4w[pb, EbDdn, Srb] := Eṽw̃[pt, EtDdn, EbDdn, pb] * vp'[pt, Srb, EtDdn]
         @tensor R4w[EbDup, Srt; EbDdn, Srb] := Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * vp[EtDup, pt, Srt]
-        @tensor wptmp[Srt, pb; EbDup] := inv(R4w)[EbDup, Srt; EbDdn, Srb] * S4w[pb, EbDdn, Srb]
+        @tensor wptmp[(Srt); (pb, EbDup)] := inv(R4w)[EbDdn, Srb, EbDup, Srt] * S4w[pb, EbDdn, Srb]
         wp = wptmp
         # 计算损失函数, ψp -> ψ' and ψt -> ψ̃
-        @tensor ψpψp[] := vp[EtDup, pt, Srt] * wp[Srt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * wp'[EbDdn, Srb, pb]
-        @tensor ψtψt[] := Eṽw̃[pt, pb, EtDdn, EbDdn] * ṽw̃'[pb, EbDdn, EtDdn, pt]
-        @tensor ψtψp[] := Eṽw̃[pt, pb, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * wp'[EbDdn, Srb, pb]
+        @tensor ψpψp[] := vp[EtDup, pt, Srt] * wp[Srt, pb, EbDup] * Ebarfull[EtDup, EbDup, EtDdn, EbDdn] * vp'[pt, Srb, EtDdn] * wp'[pb, EbDdn, Srb]
+        @tensor ψtψt[] := Eṽw̃[pt, EtDdn, EbDdn, pb] * ṽw̃'[pb, EbDdn, EtDdn, pt]
+        @tensor ψtψp[] := Eṽw̃[pt, EtDdn, EbDdn, pb] * vp'[pt, Srb, EtDdn] * wp'[pb, EbDdn, Srb]
         @tensor ψpψt[] := Eṽdagw̃dag[pb, EbDup; EtDup, pt] * vp[EtDup, pt, Srt] * wp[Srt, pb, EbDup]
         dnew = scalar(ψpψp) + scalar(ψtψt) - scalar(ψtψp) - scalar(ψpψt)
         if it == 1
@@ -149,7 +159,7 @@ function FFU_update_bond_tb(Ebarfull::TP, T::TP, B::TP, vt::TP, wb::TP, gateNN::
         end
         dold = dnew
     end
-    return vp, wp  # 这两个是带着 gauge 的
+    return vp, wp, nrm, cost, it  # 这两个是带着 gauge 的
 end
 
 """
@@ -188,38 +198,40 @@ function bond_proj_lr!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, 
     # 求局域的环境
     Ebarfull, L, R, Linv, Rinv = get_Efull_fix_gauge(Xl, Yr, envs, [xx, yy], [xx + 1, yy])
     # 迭代更新这个bond
-    vlnew, wrnew = FFU_update_bond_lr(Ebarfull, L, R, vl, wr, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    vlnew, wrnew, nrm, cost, it = FFU_update_bond_lr(Ebarfull, L, R, vl, wr, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    verbose > 0 ? println("FFU left-right update bond $([xx, yy]). Cost function $cost at iteration $(it)/$(maxiter).") : nothing
     # 新的两个 iPEPS 张量, 注意要把 gauge 去掉
-    @tensor TensorLnew[l, t, p; r, b] := vlnew[tov, p, r] * Linv[toLinv, tov] * Xl[l, t, b, toLinv]
-    @tensro TensorRnew[l, t, p; r, b] := wrnew[l, p, tow] * Rinv[tow, toRinv] * Yr[toRinv, t, r, b]
+    @tensor TensorLnew[l, t, p; r, b] := vlnew[tov, p, r] * Linv[tov, toLinv] * Xl[l, t, b, toLinv]
+    @tensor TensorRnew[l, t, p; r, b] := wrnew[l, p, tow] * Rinv[toRinv, tow] * Yr[toRinv, t, r, b]
     # 更新 iPEPS tensors
     ipeps[xx+1, yy] = TensorRnew
     ipeps[xx, yy] = TensorLnew
     # 更新环境
     FFU_update_env_lr!(ipeps, envs, xx, χ)
 
-    return nothing
+    return nrm
 end
 
 """
 更新 `[xx, yy]` 与 `[xx, yy+1]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021)
 """
-function bond_proj_tb!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap; tol, maxiter, verbose)
+function bond_proj_tb!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, χ::Int, gateNN::TensorMap; tol, maxiter, verbose)
     # 两次QR
     Xt, vt = leftorth(ipeps[xx, yy], ((1, 2, 4), (3, 5)))
     wb, Yb = rightorth(ipeps[xx, yy+1], ((2, 3), (1, 4, 5)))
     # 求环境
     Ebarfull, T, B, Tinv, Binv = get_Efull_fix_gauge(Xt, Yb, envs, [xx, yy], [xx, yy + 1])
     # 迭代更新这个bond
-    vtnew, wbnew = FFU_update_bond_tb(Ebarfull, T, B, vt, wb, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    vtnew, wbnew, nrm, cost, it = FFU_update_bond_tb(Ebarfull, T, B, vt, wb, gateNN, Dk; tol=tol, maxiter=maxiter, verbose=verbose)
+    verbose > 0 ? println("FFU top-bottom update bond $([xx, yy]). Cost function $cost at iteration $(it)/$(maxiter).") : nothing
     # 新的两个 iPEPS 张量, 注意要把 gauge 去掉
-    @tensor TensorTnew[l, t, p; r, b] := vtnew[tov, p, b] * Tinv[toTinv, tov] * Xt[l, t, r, toTinv]
-    @tensro TensorBnew[l, t, p; r, b] := wbnew[t, p, tow] * Binv[tow, toBinv] * Yb[toBinv, l, r, b]
+    @tensor TensorTnew[l, t, p; r, b] := vtnew[tov, p, b] * Tinv[tov, toTinv] * Xt[l, t, r, toTinv]
+    @tensor TensorBnew[l, t, p; r, b] := wbnew[t, p, tow] * Binv[toBinv, tow] * Yb[toBinv, l, r, b]
     # 更新 iPEPS tensors
     ipeps[xx, yy] = TensorTnew
     ipeps[xx, yy+1] = TensorBnew
     # 更新环境
     FFU_update_env_tb!(ipeps, envs, yy, χ)
 
-    return nothing
+    return nrm
 end

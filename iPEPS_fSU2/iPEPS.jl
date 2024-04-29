@@ -1,4 +1,5 @@
 import Base.getindex
+import Base.setindex!
 include("./ini_env.jl")
 
 struct iPEPS
@@ -230,6 +231,18 @@ function getindex(ipeps::iPEPS, idx::Int, idy::Int)
     idx = idx - Int(ceil(idx / Lx) - 1) * Lx
     idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipeps.Ms, idx, idy)
+end
+
+"""
+可以直接用iPEPS[x, y] = t 更改对应的tensor.\n
+若 [x, y] 超出元胞周期，则自动回归到周期内.
+"""
+function setindex!(ipeps::iPEPS, t::TensorMap, idx::Int, idy::Int)
+    Lx = ipeps.Lx
+    Ly = ipeps.Ly
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
+    return setindex!(ipeps.Ms, t, idx, idy)
 end
 
 function getindex(envs::iPEPSenv, idx::Int, idy::Int)

@@ -4,7 +4,7 @@ function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,A
     Lx = ipeps.Lx
     Ly = ipeps.Ly
 
-    τlis = para[:τlis]
+    τlis = para[:τlisSU]
     Dk = para[:Dk]
     verbose = para[:verbose]
     NNNmethod = para[:NNNmethod]

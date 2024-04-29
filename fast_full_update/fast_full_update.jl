@@ -1,9 +1,12 @@
-function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv,)
+include("FFU_gate_proj.jl")
+
+function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para::Dict{Symbol,Any})
     Lx = ipeps.Lx
     Ly = ipeps.Ly
 
-    τlis = para[:τlis]
+    τlis = para[:τlisFFU]
     Dk = para[:Dk]
+    χ = para[:χ]
     verbose = para[:verbose]
     NNNmethod = para[:NNNmethod]
     maxStep1τ = para[:maxStep1τ]
@@ -14,9 +17,9 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv,)
     for τ in τlis
         gates = get_gates(hams, τ)
         for it in 0:maxStep1τ
-            @time "FFU one step" errlis, prodNrm = fast_full_update_1step!(ipeps, envs, Dk, gates; verbose=verbose)
+            @time "FFU one step" prodNrm = fast_full_update_1step!(ipeps, envs, Dk, χ, gates; verbose=verbose, maxiter=para[:maxiterFFU], tol=para[:tolFFU])
             itime += τ
-            println("Truncation error = $(maximum(errlis)), total imaginary time = $itime")
+            println("total imaginary time = $itime")
             # ======== 检查能量收敛性 ====== See: PRB 104, 155118 (2021), Appendix 3.C
             E = -log(prodNrm) / τ
             println("Estimated energy per site is $(E / (Lx*Ly))")
@@ -39,26 +42,26 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv,)
 end
 
 
-function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::Vector{TensorMap}; verbose=1, maxiter=10, tol=1e-8)
+function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, χ::Int, gates::Vector{TensorMap}; verbose=1, maxiter=10, tol=1e-8)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
-    errlis = Vector{Float64}(undef, 2 * length(gates) * Lx * Ly)  # 总的 bond 数
+    # errlis = Vector{Float64}(undef, 2 * length(gates) * Lx * Ly)  # 总的 bond 数
     prodNrm = one(Float64)
     Nb = one(Int)
     # ================= 最近邻相互作用 ==============
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx
-        err, nrm = bond_proj_lr!(ipeps, envs, xx, yy, Dk, gates[1]; tol=tol, verbose=verbose)
-        verbose > 1 ? println("横向更新 [$xx, $yy], error=$err") : nothing
-        errlis[Nb] = err
+        nrm = bond_proj_lr!(ipeps, envs, xx, yy, Dk, χ, gates[1]; tol=tol, verbose=verbose, maxiter=maxiter)
+        # verbose > 1 ? println("横向更新 [$xx, $yy], error=$err") : nothing
+        # errlis[Nb] = err
         prodNrm *= nrm
         Nb += 1
     end
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
-        err, nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, gates[1]; tol=tol, verbose=verbose)
-        verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
-        errlis[Nb] = err
+        nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, χ, gates[1]; tol=tol, verbose=verbose, maxiter=maxiter)
+        # verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
+        # errlis[Nb] = err
         prodNrm *= nrm
         Nb += 1
     end
@@ -79,5 +82,5 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, gates::V
     #     end
     # end
 
-    return errlis, prodNrm
+    return prodNrm
 end

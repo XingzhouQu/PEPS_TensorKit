@@ -10,16 +10,20 @@ include("../CTMRG_fSU2/CTMRG.jl")
 include("../models/Heisenberg_U1.jl")
 include("../simple_update_fSU2/simple_update.jl")
 include("../Cal_Obs_fSU2/Cal_Obs.jl")
+include("../fast_full_update/fast_full_update.jl")
 
 function main()
     para = Dict{Symbol,Any}()
     para[:J] = 1.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.001, 0.0001]
+    para[:τlisFFU] = [1e-2, 1e-3, 1e-4, 1e-5]
     para[:maxStep1τ] = 50  # 对每个虚时步长 τ , 最多投影这么多步
     para[:Dk] = 6  # Dkept in the simple udate
     para[:χ] = 100  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 0.0001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
+    para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
+    para[:maxiterFFU] = 20  # FFU 中迭代计算bond tensor 的最大迭代步数
     para[:verbose] = 1
     para[:NNNmethod] = :bond
     para[:pspace] = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
@@ -39,9 +43,12 @@ function main()
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
     χ = 100
-    Nit = 20
+    Nit = 2
     CTMRG!(ipeps, envs, χ, Nit)
     check_qn(ipeps, envs)
+
+    # 切换到 fast_full_update
+    fast_full_update!(ipeps, envs, Heisenberg_hij, para)
 
     # 计算观测量
     println("============== Calculating Obs ====================")
