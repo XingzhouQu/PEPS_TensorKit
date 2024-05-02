@@ -66,18 +66,22 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     # 这里单点项要➗4？
     gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
     -(μ / 4) * (Opn ⊗ id(pspace) + id(pspace) ⊗ Opn)
-    return gate
+    return [gate]
 end
 
 function get_op_Hubbard(tag::String, para::Dict{Symbol,Any})
     if tag == "hij"
-        return Hubbard_hij(para[:t], para[:U], para[:μ])
+        return Hubbard_hij(para)[1]
     elseif tag == "CdagC"
         return FdagF(para[:pspace])
     elseif tag == "SS"
-        return
+        return SS(para[:pspace])
     elseif tag == "NN"
-        return
+        return n(para[:pspace]) ⊗ n(para[:pspace])
+    elseif tag == "N"
+        return n(para[:pspace])
+    elseif tag == "Nd"
+        return nd(para[:pspace])
     else
         error("Unsupported tag. Check input tag or add this operator.")
     end

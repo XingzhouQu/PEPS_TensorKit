@@ -1,5 +1,5 @@
 import Base.getindex
-include("./swap_gate.jl")
+import Base.setindex!
 include("./ini_env.jl")
 
 struct iPEPS
@@ -23,8 +23,9 @@ mutable struct _corner
     lb::AbstractTensorMap
     rt::AbstractTensorMap
     rb::AbstractTensorMap
-    function _corner(A::AbstractTensorMap)
-        return new(ini_lt_corner(A), ini_lb_corner(A), ini_rt_corner(A), ini_rb_corner(A))
+    function _corner(ipeps::iPEPS, x::Int, y::Int)
+        return new(ini_lt_corner(ipeps[x-1, y-1]), ini_lb_corner(ipeps[x-1, y+1]),
+            ini_rt_corner(ipeps[x+1, y-1]), ini_rb_corner(ipeps[x+1, y+1]))
     end
 end
 
@@ -33,8 +34,9 @@ mutable struct _transfer
     r::AbstractTensorMap
     t::AbstractTensorMap
     b::AbstractTensorMap
-    function _transfer(A::AbstractTensorMap)
-        return new(ini_l_transfer(A), ini_r_transfer(A), ini_t_transfer(A), ini_b_transfer(A))
+    function _transfer(ipeps::iPEPS, x::Int, y::Int)
+        return new(ini_l_transfer(ipeps[x-1, y]), ini_r_transfer(ipeps[x+1, y]),
+            ini_t_transfer(ipeps[x, y-1]), ini_b_transfer(ipeps[x, y+1]))
     end
 end
 
@@ -43,8 +45,8 @@ end
 struct _iPEPSenv
     corner::_corner
     transfer::_transfer
-    function _iPEPSenv(t::AbstractTensorMap)
-        return new(_corner(t), _transfer(t))
+    function _iPEPSenv(ipeps::iPEPS, x::Int, y::Int)
+        return new(_corner(ipeps, x, y), _transfer(ipeps, x, y))
     end
 end
 
@@ -67,8 +69,7 @@ struct iPEPSenv
         Ly = ipeps.Ly
         envs = Matrix{_iPEPSenv}(undef, Lx, Ly)
         for x in 1:Lx, y in 1:Ly
-            tensor = ipeps[x, y]
-            envs[x, y] = _iPEPSenv(tensor)
+            envs[x, y] = _iPEPSenv(ipeps, x, y)
         end
         return new(envs, Lx, Ly)
     end
@@ -97,8 +98,8 @@ end
 
 
 """
-内部构造方法：\n
-`ipepsΓΛ =  iPEPSΓΛ(ipeps::iPEPS)`
+构造方法：\n
+`ipepsΓΛ =  iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)`
 
 用法：\n
 `ipepsΓΛ[x, y].Γ  →  Γ`
@@ -106,6 +107,12 @@ end
 `ipepsΓΛ[x, y].r`
 `ipepsΓΛ[x, y].t`
 `ipepsΓΛ[x, y].b`
+
+    ——————>  x
+    |
+    |
+    v
+     y 
 """
 struct iPEPSΓΛ
     ΓΛ::Matrix{_iPEPSΓΛ}
@@ -115,16 +122,17 @@ struct iPEPSΓΛ
     function iPEPSΓΛ(γλ::Matrix{_iPEPSΓΛ}, Lx, Ly)
         return new(γλ, Lx, Ly)
     end
-    # 初始化 ΓΛ 形式的 iPEPS. 
+    # 初始化 ΓΛ 形式的 iPEPS. 注意左上不是对偶空间，右下的指标在对偶空间
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[l, t, p, r, bin] * ipepsΓΛ[1,1].b[bin, b]
     # tmp[l, t, p; r, b] := ipepsΓΛ[1,1].Γ[lin, t, p, r, b] * ipepsΓΛ[1,1].l[l, lin]
-    function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=ComplexF64)
+    function iPEPSΓΛ(pspace::VectorSpace, aspacelr::VectorSpace, aspacetb::VectorSpace, Lx::Int, Ly::Int; dtype=Float64)
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
-        A = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
-        slr = id(aspacelr)
-        stb = id(aspacetb)
-        ini = _iPEPSΓΛ(A, slr, stb)
-        fill!(γλ, ini)
+        for xx in 1:Lx, yy in 1:Ly
+            # 这里以后可以改用randisometry初始化。现在版本randisometry有bug?
+            tmp = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
+            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), id(aspacelr), id(aspacetb))
+        end
+        # fill!(γλ, ini)  # 注意：这里不能用 fill! 初始化，这样会把所有的矩阵元都对应同一个引用，改一个就是在改所有！！！
         return new(γλ, Lx, Ly)
     end
 end
@@ -182,12 +190,14 @@ function iPEPS(ipeps::iPEPSΓΛ)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     Ms = Matrix{TensorMap}(undef, Lx, Ly)
-    for xx in 1:Lx, yy in 1:Ly
-        @tensor tmp[l, t, p; r, b] := ipeps[x, y].Γ[le, te, p, re, be] * sqrt(ipeps[x, y].l)[l, le] *
-                                      sqrt(ipeps[x, y].t)[t, te] * sqrt(ipeps[x, y].r)[re, r] * sqrt(ipeps[x, y].b)[be, b]
-        Ms[xx, yy] = tmp
+    for x in 1:Lx, y in 1:Ly
+        # println("x=$x, y=$y, space is $(space(ipeps[x, y].Γ))")
+        @tensor tmp[l, t, p; r, b] := ipeps[x, y].Γ[le, te, p, re, be] * sqrt4diag(ipeps[x, y].l)[l, le] *
+                                      sqrt4diag(ipeps[x, y].t)[t, te] * sqrt4diag(ipeps[x, y].r)[re, r] * sqrt4diag(ipeps[x, y].b)[be, b]
+        # tmp = ipeps[x, y].Γ * sqrt(ipeps[x, y].l) * sqrt(ipeps[x, y].t) * sqrt(ipeps[x, y].r) * sqrt(ipeps[x, y].b)
+        Ms[x, y] = tmp
     end
-    return new(Ms, Lx, Ly)
+    return iPEPS(Ms, Lx, Ly)
 end
 
 # 转换正常的iPEPS为 ΓΛ 形式，用处不大，也不知道对不对
@@ -218,16 +228,28 @@ end
 function getindex(ipeps::iPEPS, idx::Int, idy::Int)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipeps.Ms, idx, idy)
+end
+
+"""
+可以直接用iPEPS[x, y] = t 更改对应的tensor.\n
+若 [x, y] 超出元胞周期，则自动回归到周期内.
+"""
+function setindex!(ipeps::iPEPS, t::TensorMap, idx::Int, idy::Int)
+    Lx = ipeps.Lx
+    Ly = ipeps.Ly
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
+    return setindex!(ipeps.Ms, t, idx, idy)
 end
 
 function getindex(envs::iPEPSenv, idx::Int, idy::Int)
     Lx = envs.Lx
     Ly = envs.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(envs.Envs, idx, idy)
 end
 
@@ -238,7 +260,9 @@ end
 function getindex(ipepsΓΛ::iPEPSΓΛ, idx::Int, idy::Int)
     Lx = ipepsΓΛ.Lx
     Ly = ipepsΓΛ.Ly
-    idx = idx - Int(ceil(idx / Lx) - 1)
-    idy = idy - Int(ceil(idy / Ly) - 1)
+    idx = idx - Int(ceil(idx / Lx) - 1) * Lx
+    idy = idy - Int(ceil(idy / Ly) - 1) * Ly
     return getindex(ipepsΓΛ.ΓΛ, idx, idy)
 end
+
+include("./util.jl")

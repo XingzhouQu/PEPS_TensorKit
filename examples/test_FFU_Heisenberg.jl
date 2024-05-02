@@ -5,12 +5,12 @@ using TensorKit
 
 # 测试正方格子 Heisenberg 模型, U1spin. 
 
-include("../iPEPS_fSU2/iPEPS.jl")
-include("../CTMRG_fSU2/CTMRG.jl")
+include("../iPEPS_Bosonic/iPEPS.jl")
+include("../CTMRG_Bosonic/CTMRG.jl")
 include("../models/Heisenberg_U1.jl")
-include("../simple_update_fSU2/simple_update.jl")
-include("../Cal_Obs_fSU2/Cal_Obs.jl")
-include("../fast_full_update/fast_full_update.jl")
+include("../simple_update_Bosonic/simple_update.jl")
+include("../Cal_Obs_Bosonic/Cal_Obs.jl")
+include("../fast_full_update_Bosonic/fast_full_update.jl")
 
 function main()
     para = Dict{Symbol,Any}()
