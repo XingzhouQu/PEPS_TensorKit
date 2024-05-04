@@ -5,11 +5,11 @@ using TensorKit
 
 # 测试正方格子 Heisenberg 模型的能量
 
-include("../iPEPS_fSU2/iPEPS.jl")
-include("../CTMRG_fSU2/CTMRG.jl")
+include("../iPEPS_Bosonic/iPEPS.jl")
+include("../CTMRG_Bosonic/CTMRG.jl")
 include("../models/Heisenberg_SU2.jl")
-include("../simple_update_fSU2/simple_update.jl")
-include("../Cal_Obs_fSU2/Cal_Obs.jl")
+include("../simple_update_Bosonic/simple_update.jl")
+include("../Cal_Obs_Bosonic/Cal_Obs.jl")
 
 function main()
     para = Dict{Symbol,Any}()

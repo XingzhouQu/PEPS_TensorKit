@@ -1,43 +1,62 @@
-"""
-Convention: s1 and s2 are spaces to be exchanged.
+import Base.getindex
 
-Return space：(s1, s2) ← (s1, s2)
 """
-function swap_gate(s1::T, s2::T) where T <: ElementarySpace
+Convention: s1 and s2 are spaces to be swap.
+
+For pspace, always put charge symmetry in front of spin symmetry. e.g. U1charge × SU2spin
+
+Return space: (s1, s2) ← (s1, s2)
+"""
+function swap_gate(s1::T, s2::T; Eltype=Float64) where {T<:ElementarySpace}
+    @assert sectortype(s1) == sectortype(s2) "Input spaces should have same sectortype."
+    # -----------得到sector type------------------
+    rep = collect(sectors(s1))[1]
+    reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
+    # -------------------------------------------
     tmp1 = id(s1)
     tmp2 = id(s2)
     tmp = tmp1 ⊗ tmp2
-    for blk in blocks(tmp)
-        for sct in blk[1].sectors
-            if sct == Irrep[ℤ₂](1)
-                block(tmp, blk[1]) .*= -1
-                continue
-            end
-        end
+    for (f1, f2) in fusiontrees(tmp)
+        # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
+        # 为了类型稳定，不需要改动的也乘一个1 ？
+        isoddParity(f1, reptype) ? (tmp[f1, f2] *= -one(Eltype)) : (tmp[f1, f2] *= one(Eltype))
     end
     return tmp
 end
 
-# 这样做也行，但是似乎慢一点，后面对大的张量可以再测试一下
-# function swap_gate2(s1::T, s2::T) where T <: ElementarySpace
-#     # convention: s1 and s2 are domain spaces.
-#     tmp1 = id(s1)
-#     tmp2 = id(s2)
-#     for blk in blocks(tmp1)
-#         for sct in blk[1].sectors
-#             if sct == Irrep[ℤ₂](1)
-#                 block(tmp1, blk[1]) .*= -1
-#                 continue
-#             end
-#         end
-#     end
-#     for blk in blocks(tmp2)
-#         for sct in blk[1].sectors
-#             if sct == Irrep[ℤ₂](1)
-#                 block(tmp2, blk[1]) .*= -1
-#                 continue
-#             end
-#         end
-#     end
-#     return tmp1 ⊗ tmp2
-# end
+"""
+Check if the input fusiontree needs a minus sign. i.e. If both uncoupled sectors have odd parity. 
+"""
+function isoddParity(f::FusionTree, reptype::T) where {T<:Union{Type{U1Irrep},Type{Z2Irrep},Type{SU2Irrep}}}
+    # f.uncoupled isa Tuple, e.g. f.uncoupled = (Irrep[U₁ × SU₂](-1, 0), Irrep[U₁ × SU₂](2, 0))
+    @assert length(f.uncoupled) == 2
+    s1 = f.uncoupled[1]
+    s2 = f.uncoupled[2]
+    if reptype == U1Irrep
+        if isodd(s1[1].charge) && isodd(s2[1].charge)
+            return true
+        else
+            return false
+        end
+    elseif reptype == Z2Irrep
+        if isodd(s1[1].n) && isodd(s2[1].n)
+            return true
+        else
+            return false
+        end
+    elseif reptype == SU2Irrep
+        if isodd(s1[1].j) && isodd(s2[1].j)
+            return true
+        else
+            return false
+        end
+    else
+        error("Not supported charge symmetry")
+    end
+    return nothing
+end
+
+# 仅有电荷对称性时候, rep没有索引method, 为了和多种对称性需要索引的情况保持一致，加一个trivial 的索引方法.
+function getindex(rep::T, ind::Int) where {T<:Union{Type{U1Irrep},Type{Z2Irrep},Type{SU2Irrep}}}
+    return rep
+end
