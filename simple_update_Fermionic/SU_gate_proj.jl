@@ -1,10 +1,13 @@
-# TODO: add swap_gate
 # ================================= 最近邻 ==============================================================
 """
-更新 `[xx, yy]` 与 `[xx+1, yy]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021)
+更新 `[xx, yy]` 与 `[xx+1, yy]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021) and Master thesis of Chang-Kai Zhang
 """
 function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap)
-    @tensor Γl[l, t, p; r, b] := ipeps[xx, yy].Γ[le, te, p, r, be] * ipeps[xx, yy].l[l, le] *
+    # 计入第一个交换门, 把物理指标换过来
+    swgate1 = swap_gate(space(ipeps[xx, yy].Γ)[3], space(ipeps[xx, yy].Γ)[5]; Eltype=eltype(ipeps[xx, yy].Γ))
+    @tensor Γltmp[l, t, p; r, b] := ipeps[xx, yy].Γ[l, t, pin, r, bin] * swgate1[p, b, pin, bin]
+    # 开始玻色型的分解
+    @tensor Γl[l, t, p; r, b] := Γltmp[le, te, p, r, be] * ipeps[xx, yy].l[l, le] *
                                  ipeps[xx, yy].t[t, te] * ipeps[xx, yy].b[be, b]
     @tensor Γr[l, t, p; r, b] := ipeps[xx+1, yy].Γ[l, te, p, re, be] * ipeps[xx+1, yy].t[t, te] *
                                  ipeps[xx+1, yy].r[re, r] * ipeps[xx+1, yy].b[be, b]
@@ -15,7 +18,9 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor mid[(toX, pl, pr); (toY)] := vl[toX, plin, toV] * ipeps[xx, yy].r[toV, toW] * gateNN[pl, pr, plin, prin] *
                                          wr[toW, prin, toY]
     vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
-    @tensor Γlnew[l, t, p; r, b] := Xl[le, te, be, toX] * vnew[toX, p, r] *
+    # 计入第二个交换门，把物理指标换回去
+    swgate2 = swap_gate(space(Xl)[3], space(vnew)[2]; Eltype=eltype(vnew))
+    @tensor Γlnew[l, t, p; r, b] := Xl[le, te, bein, toX] * vnew[toX, pin, r] * swgate2[be, p, bein, pin] *
                                     inv(ipeps[xx, yy].l)[l, le] * inv(ipeps[xx, yy].t)[t, te] * inv(ipeps[xx, yy].b)[be, b]
     @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
                                     inv(ipeps[xx+1, yy].r)[re, r] * inv(ipeps[xx+1, yy].b)[be, b]
@@ -30,11 +35,15 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
 end
 
 """
-更新 `[xx, yy]` 与 `[xx, yy+1]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021)
+更新 `[xx, yy]` 与 `[xx, yy+1]` 之间的 bond. See: SciPost Phys. Lect.Notes 25(2021) and Master thesis of Chang-Kai Zhang
 """
 function bond_proj_tb!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::TensorMap)
+    # 计入第一个交换门，把物理指标换过来
+    swgate1 = swap_gate(space(ipeps[xx, yy+1].Γ)[1], space(ipeps[xx, yy+1].Γ)[3]; Eltype=eltype(ipeps[xx, yy+1].Γ))
+    @tensor Γdtmp[l, t, p; r, b] := ipeps[xx, yy+1].Γ[lin, t, pin, r, b] * swgate1[l, p, lin, pin]
+    # 开始玻色型的分解
     @tensor Γu[l, t, p; r, b] := ipeps[xx, yy].Γ[le, te, p, re, b] * ipeps[xx, yy].t[t, te] * ipeps[xx, yy].r[re, r] * ipeps[xx, yy].l[l, le]
-    @tensor Γd[l, t, p; r, b] := ipeps[xx, yy+1].Γ[le, t, p, re, be] * ipeps[xx, yy+1].l[l, le] * ipeps[xx, yy+1].r[re, r] *
+    @tensor Γd[l, t, p; r, b] := Γdtmp[le, t, p, re, be] * ipeps[xx, yy+1].l[l, le] * ipeps[xx, yy+1].r[re, r] *
                                  ipeps[xx, yy+1].b[be, b]
     # 两次QR
     Xu, vu = leftorth(Γu, ((1, 2, 4), (3, 5)))
@@ -43,7 +52,9 @@ function bond_proj_tb!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     @tensor mid[toX, pu, pd; toY] := vu[toX, puin, toV] * ipeps[xx, yy].b[toV, toW] * gateNN[pu, pd, puin, pdin] *
                                      wd[toW, pdin, toY]
     vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
-    @tensor Γdnew[l, t, p; r, b] := Yd[toY, le, re, be] * wnew[t, p, toY] *
+    # 计入第二个交换门，把物理指标换回去
+    swgate2 = swap_gate(space(Yd)[2], space(wnew)[2]; Eltype=eltype(wnew))
+    @tensor Γdnew[l, t, p; r, b] := Yd[toY, lein, re, be] * wnew[t, pin, toY] * swgate2[le, p, lein, pin] *
                                     inv(ipeps[xx, yy+1].l)[l, le] * inv(ipeps[xx, yy+1].r)[re, r] * inv(ipeps[xx, yy+1].b)[be, b]
     @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *
                                     inv(ipeps[xx, yy].r)[re, r] * inv(ipeps[xx, yy].l)[l, le]
@@ -57,6 +68,7 @@ function bond_proj_tb!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     return err, nrm
 end
 
+# TODO: add swap_gate
 # ================================= 次近邻 ==============================================================
 
 # 次近邻这部分，在做SVD的时候要注意 U 和 V 的位置（哪个是U，哪个是V），最简单的标准是让奇异值谱能直接作为 bond tensor而不用取dagger.
