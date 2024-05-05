@@ -5,8 +5,12 @@ left-top corner environment tensor.
 return: ltfuse[(rχ, bχ); ()]
 """
 function ini_lt_corner(A::AbstractTensorMap)
-    Abar = A'
-    @tensor lt[(); (rup, bup, rdn, bdn)] := A[lupin, tupin, p, rup, bup] * Abar[rdn, bdn, lupin, tupin, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor lt[(); (rup, bup, rdn, bdn)] :=
+        gate1[ldnin, tdnin, lupin, tupin] * A[lupin, tupin, p, rup, bupin] *
+        Abar[ldnin, tdnin, p, rdnin, bdn] * gate2[rdn, bup, rdnin, bupin]
     frspace = fuse(space(lt)[1], space(lt)[3])
     isor = isometry(dual(frspace), space(lt)[1] ⊗ space(lt)[3])
     fbspace = fuse(space(lt)[2], space(lt)[4])
@@ -22,8 +26,12 @@ left-bottom corner environment tensor.
 return: lbfuse[(tχ, rχ); ()]
 """
 function ini_lb_corner(A::AbstractTensorMap)
-    Abar = A'
-    @tensor lb[tdn, tup; rup, rdn] := Abar[rdn, bdnin, ldnin, tdn, p] * A[ldnin, tup, p, rup, bdnin]
+    Abar = bar(A)
+    gate1 = swap_gate(space(Abar)[1], space(Abar)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(Abar)[5]; Eltype=eltype(A))
+    @tensor lb[tdn, tup; rup, rdn] :=
+        gate1[lupin, tdn, ldnin, tdnin] * Abar[ldnin, tdnin, p, rdnin, bdnin] *
+        gate2[rdn, bupin, rdnin, bdnin] * A[lupin, tup, p, rup, bupin]
     ftspace = fuse(space(lb)[2], space(lb)[1])
     isot = isometry(ftspace, space(lb)[2] ⊗ space(lb)[1])
     frspace = fuse(space(lb)[3], space(lb)[4])
@@ -39,8 +47,12 @@ right-top corner environment tensor.
 return: rtfuse[(lχ, bχ); ()]
 """
 function ini_rt_corner(A::AbstractTensorMap)
-    Abar = A'
-    @tensor rt[lup ldn; bup bdn] := A[lup, tupin, p, rupin, bup] * Abar[rupin, bdn, ldn, tupin, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(A)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor rt[lup ldn; bup bdn] :=
+        gate1[lup, tdnin, lupin, tupin] * A[lupin, tupin, p, rupin, bupin] *
+        gate2[rdnin, bup, rupin, bupin] * Abar[ldn, tdnin, p, rdnin, bdn]
     flspace = fuse(space(rt)[1], space(rt)[2])
     isol = isometry(flspace, space(rt)[1] ⊗ space(rt)[2])
     fbspace = fuse(space(rt)[3], space(rt)[4])
@@ -56,8 +68,12 @@ right-bottom corner environment tensor.
 return: rbfuse[(); (lχ, tχ)]
 """
 function ini_rb_corner(A::AbstractTensorMap)
-    Abar = A'
-    @tensor rb[(lup, ldn, tup, tdn); ()] := A[lup, tup, p, rupin, bupin] * Abar[rupin, bupin, ldn, tdn, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(A)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor rb[(lup, ldn, tup, tdn); ()] :=
+        gate2[rdnin, bdnin, rupin, bupin] * Abar[ldn, tdnin, p, rdnin, bdnin] *
+        A[lupin, tup, p, rupin, bupin] * gate1[lup, tdnin, lupin, tdn]
     flspace = fuse(space(rb)[1], space(rb)[2])
     isol = isometry(flspace, space(rb)[1] ⊗ space(rb)[2])
     ftspace = fuse(space(rb)[3], space(rb)[4])
@@ -73,8 +89,12 @@ left edge transfer tensor.
 return: lfuse[(tχ, bχ); (rup, rdn)]
 """
 function ini_l_transfer(A::AbstractTensorMap)
-    Abar = A'
-    @tensor tmp[(tup, tdn); (rup, rdn, bup, bdn)] := A[lupin, tup, p, rup, bup] * Abar[rdn, bdn, lupin, tdn, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor tmp[(tup, tdn); (rup, rdn, bup, bdn)] :=
+        gate1[ldnin, tdnin, lupin, tdn] * Abar[ldnin, tdnin, p, rdnin, bdn] *
+        A[lupin, tup, p, rup, bupin] * gate2[rdn, bup, rdnin, bupin]
     ftspace = fuse(space(tmp)[1], space(tmp)[2])
     isot = isometry(ftspace, space(tmp)[1] ⊗ space(tmp)[2])
     fbspace = fuse(space(tmp)[5], space(tmp)[6])
@@ -89,8 +109,12 @@ right edge transfer tensor.
 return: rfuse[(lup, ldn, tχ, bχ); ()]
 """
 function ini_r_transfer(A::AbstractTensorMap)
-    Abar = A'
-    @tensor tmp[(lup, ldn, tup, tdn); (bup, bdn)] := A[lup, tup, p, rupin, bup] * Abar[rupin, bdn, ldn, tdn, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(A)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor tmp[(lup, ldn, tup, tdn); (bup, bdn)] :=
+        gate1[lup, tdnin, lupin, tdn] * A[lupin, tup, p, rupin, bupin] *
+        gate2[rdnin, bup, rupin, bupin] * Abar[ldn, tdnin, p, rdnin, bdn]
     ftspace = fuse(space(tmp)[3], space(tmp)[4])
     isot = isometry(ftspace, space(tmp)[3] ⊗ space(tmp)[4])
     fbspace = fuse(space(tmp)[5], space(tmp)[6])
@@ -105,8 +129,12 @@ top edge transfer tensor.
 return: tfuse[(lχ, rχ); (bup, bdn)]
 """
 function ini_t_transfer(A::AbstractTensorMap)
-    Abar = A'
-    @tensor tmp[(lup, ldn); (rup, rdn, bup, bdn)] := A[lup, tupin, p, rup, bup] * Abar[rdn, bdn, ldn, tupin, p]
+    Abar = bar(A)
+    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
+    @tensor tmp[(lup, ldn); (rup, rdn, bup, bdn)] :=
+        gate1[lup, tdnin, lupin, tupin] * A[lupin, tupin, p, rup, bupin] *
+        gate2[rdn, bup, rdnin, bupin] * Abar[ldn, tdnin, p, rdnin, bdn]
     flspace = fuse(space(tmp)[1], space(tmp)[2])
     isol = isometry(flspace, space(tmp)[1] ⊗ space(tmp)[2])
     frspace = fuse(space(tmp)[3], space(tmp)[4])
@@ -121,8 +149,12 @@ bottom edge transfer tensor.
 return: bfuse[(lχ, tup, tdn, rχ); ()]
 """
 function ini_b_transfer(A::AbstractTensorMap)
-    Abar = A'
-    @tensor tmp[(lup, ldn, tup, tdn); (rup, rdn)] := Abar[rdn, bdnin, ldn, tdn, p] * A[lup, tup, p, rup, bdnin]
+    Abar = bar(A)
+    gate1 = swap_gate(space(Abar)[1], space(Abar)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(Abar)[5]; Eltype=eltype(A))
+    @tensor tmp[(lup, ldn, tup, tdn); (rup, rdn)] :=
+        gate1[lupin, tdn, lup, tdnin] * Abar[ldn, tdnin, p, rdnin, bdnin] *
+        gate2[rdn, bupin, rdnin, bdnin] * A[lupin, tup, p, rup, bupin]
     flspace = fuse(space(tmp)[1], space(tmp)[2])
     isol = isometry(flspace, space(tmp)[1] ⊗ space(tmp)[2])
     frspace = fuse(space(tmp)[5], space(tmp)[6])

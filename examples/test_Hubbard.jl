@@ -6,11 +6,11 @@ using Statistics
 
 # 测试正方格子 Hubbard 模型, fSU₂. 
 
-include("../iPEPS_fSU2/iPEPS.jl")
-include("../CTMRG_fSU2/CTMRG.jl")
+include("../iPEPS_Fermionic/iPEPS.jl")
+include("../CTMRG_Fermionic/CTMRG.jl")
 include("../models/Hubbard.jl")
-include("../simple_update_fSU2/simple_update.jl")
-include("../Cal_Obs_fSU2/Cal_Obs.jl")
+include("../simple_update_Fermionic/simple_update.jl")
+include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
 function main()
     para = Dict{Symbol,Any}()

@@ -1,9 +1,9 @@
-function get_proj_update_left(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+function get_proj_update_left(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
     # Qu 上面一半  Qd 下面一半
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
+    QuL = get_QuL(ipeps, ipepsbar, envs, x, y)
+    QuR = get_QuR(ipeps, ipepsbar, envs, x + 1, y)
+    QdL = get_QdL(ipeps, ipepsbar, envs, x, y + 1)
+    QdR = get_QdR(ipeps, ipepsbar, envs, x + 1, y + 1)
     # 复杂度最高的两步缩并
     @tensor Qu[(); (bχL, bupDL, bdnDL, bχR, bupDR, bdnDR)] :=
         QuL[rχin, rupD, rdnD, bχL, bupDL, bdnDL] * QuR[rχin, rupD, rdnD, bχR, bupDR, bdnDR]
@@ -25,12 +25,12 @@ function get_proj_update_left(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::
     return projup / norm(projup, Inf), projdn / norm(projdn, Inf), ϵ
 end
 
-function get_proj_update_right(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+function get_proj_update_right(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
     # Qu 上面一半  Qd 下面一半
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
+    QuL = get_QuL(ipeps, ipepsbar, envs, x, y)
+    QuR = get_QuR(ipeps, ipepsbar, envs, x + 1, y)
+    QdL = get_QdL(ipeps, ipepsbar, envs, x, y + 1)
+    QdR = get_QdR(ipeps, ipepsbar, envs, x + 1, y + 1)
     # 复杂度最高的两步缩并
     @tensor Qu[(); (bχL, bupDL, bdnDL, bχR, bupDR, bdnDR)] :=
         QuL[rχin, rupD, rdnD, bχL, bupDL, bdnDL] * QuR[rχin, rupD, rdnD, bχR, bupDR, bdnDR]
@@ -54,11 +54,11 @@ function get_proj_update_right(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ:
 end
 
 
-function get_proj_update_top(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
+function get_proj_update_top(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+    QuL = get_QuL(ipeps, ipepsbar, envs, x, y)
+    QuR = get_QuR(ipeps, ipepsbar, envs, x + 1, y)
+    QdL = get_QdL(ipeps, ipepsbar, envs, x, y + 1)
+    QdR = get_QdR(ipeps, ipepsbar, envs, x + 1, y + 1)
     # 复杂度最高的缩并
     @tensor QL[(); (rχt, rupDt, rdnDt, rχb, rupDb, rdnDb)] :=
         QuL[rχt, rupDt, rdnDt, bχLin, bupDL, bdnDL] * QdL[bχLin, bupDL, bdnDL, rχb, rupDb, rdnDb]
@@ -79,11 +79,11 @@ function get_proj_update_top(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::I
     return projleft / norm(projleft, Inf), projright / norm(projright, Inf), ϵ
 end
 
-function get_proj_update_bottom(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
-    QuL = get_QuL(ipeps, envs, x, y)
-    QuR = get_QuR(ipeps, envs, x + 1, y)
-    QdL = get_QdL(ipeps, envs, x, y + 1)
-    QdR = get_QdR(ipeps, envs, x + 1, y + 1)
+function get_proj_update_bottom(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ::Int)
+    QuL = get_QuL(ipeps, ipepsbar, envs, x, y)
+    QuR = get_QuR(ipeps, ipepsbar, envs, x + 1, y)
+    QdL = get_QdL(ipeps, ipepsbar, envs, x, y + 1)
+    QdR = get_QdR(ipeps, ipepsbar, envs, x + 1, y + 1)
     # 复杂度最高的缩并
     @tensor QL[(rχt, rχb); (rupDt, rdnDt, rupDb, rdnDb)] :=
         QuL[rχt, rupDt, rdnDt, bχLin, bupDL, bdnDL] * QdL[bχLin, bupDL, bdnDL, rχb, rupDb, rdnDb]
@@ -105,58 +105,70 @@ function get_proj_update_bottom(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int, χ
 end
 
 
-function get_QuL(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QuL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     # 左上角半边
     C = envs[x, y].corner.lt
     Tt = envs[x, y].transfer.t
     Tl = envs[x, y].transfer.l
     M = ipeps[x, y]
-    Mbar = M'
+    Mbar = ipepsbar[x, y]
+    gate1 = swap_gate(space(Tt)[4], space(Tl)[3]; Eltype=eltype(M))
+    gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
     @tensor CTtTlMMbar[(); (rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
-        Tt[rχin, rχ, bupDin, rupD] * C[rχin, bχin] * Tl[bχin, bχ, rupDin, rdnD] *
-        M[rupDin, bupDin, p, rupMD, bupMD] * Mbar[rdnMD, bdnMD, rdnD, rupD, p]
+        Tt[rχin, rχ, bupDin, rupDMin1] * C[rχin, bχin] * Tl[bχin, bχ, rupDMin2, rdnD] *
+        gate1[rupDin1, rupDin2, rupDMin1, rupDMin2] * M[rupDin2, bupDin, p, rupMD, bupMDin] *
+        Mbar[rdnD, rupDin1, p, rdnMDin, bdnMD] * gate2[bupMD, rdnMD, bupMDin, rdnMDin]
     return CTtTlMMbar
 end
 
-function get_QuR(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QuR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     # 右上角半边
     C = envs[x, y].corner.rt
     Tt = envs[x, y].transfer.t
     Tr = envs[x, y].transfer.r
     M = ipeps[x, y]
-    Mbar = M'
+    Mbar = ipepsbar[x, y]
+    gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
+    gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
     @tensor CTtTrMMbar[lχ, lupD, ldnD; bχ, bupD, bdnD] :=
         C[lχin, bχin] * Tt[lχ, lχin, bupDin, bdnDin] * Tr[lupDin, ldnDin, bχin, bχ] *
-        M[lupD, bupDin, p, lupDin, bupD] * Mbar[ldnDin, bdnD, ldnD, bdnDin, p]
+        M[lupDMin, bupDin, p, lupDin, bupDMin] * gate1[lupD, bdnDin, lupDMin, bdnDMin] *
+        gate2[bupD, ldnDin, bupDMin, ldnDMin] * Mbar[ldnD, bdnDMin, p, ldnDMin, bdnD]
     return CTtTrMMbar
 end
 
-function get_QdL(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QdL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     # 左下角半边
     C = envs[x, y].corner.lb
     Tl = envs[x, y].transfer.l
     Tb = envs[x, y].transfer.b
     M = ipeps[x, y]
-    Mbar = M'
+    Mbar = ipepsbar[x, y]
+    gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
+    gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
     @tensor CTlTbMbarM[tχ, tupD, tdnD; rχ, rupD, rdnD] :=
         C[tχin, rχin] * Tl[tχ, tχin, rupDin, rdnDin] * Tb[rχin, tupDin, tdnDin, rχ] *
-        Mbar[rdnD, tdnDin, rdnDin, tdnD, p] * M[rupDin, tupD, p, rupD, tupDin]
+        Mbar[rdnDin, tdnDMin, p, rdnDMin, tdnDin] * gate2[tupDin, rdnD, tupDMin, rdnDMin] *
+        gate1[rupDin, tdnD, rupDMin, tdnDMin] * M[rupDMin, tupD, p, rupD, tupDMin]
     return CTlTbMbarM
 end
 
-function get_QdR(ipeps::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QdR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
     # 右下角半边
     C = envs[x, y].corner.rb
     Tr = envs[x, y].transfer.r
     Tb = envs[x, y].transfer.b
     M = ipeps[x, y]
-    Mbar = M'
+    Mbar = ipepsbar[x, y]
+    gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
+    gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
     @tensor CTrTbMbarM[(lχ, lupD, ldnD, tχ, tupD, tdnD); ()] :=
         C[lχin, tχin] * Tr[lupMDin, ldnDin, tχ, tχin] * Tb[lχ, tupDin, tdnDin, lχin] *
-        Mbar[ldnDin, tdnDin, ldnD, tdnD, p] * M[lupD, tupD, p, lupMDin, tupDin]
+        gate2[tupDin, ldnDin, tupDMin, ldnDMin] * Mbar[ldnD, tdnDMin, p, ldnDMin, tdnDin] *
+        M[lupDMin, tupD, p, lupMDin, tupDMin] * gate1[lupD, tdnD, lupDMin, tdnDMin]
     return CTrTbMbarM
 end

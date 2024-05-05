@@ -137,7 +137,27 @@ function normalize!(ipeps::iPEPS, p::Real=2)
      return nothing
 end
 
+# ======= dagger of Fermionic iPEPS tensor =================
+"""
+Get the bar state of iPEPS tensor. M† with two swap gates contracted.
+"""
+function bar(M::TensorMap)::TensorMap
+     tp = eltype(M)
+     gate1 = swap_gate(space(M)[1], space(M)[2]; Eltype=tp)
+     gate2 = swap_gate(space(M)[4], space(M)[5]; Eltype=tp)
+     @tensor Mbar[l, t, p; r, b] := gate1[lin, tin, l, t] * M'[rin, bin, lin, tin, p] * gate2[rin, bin, r, b]
+     return Mbar
+end
 
+function bar(ipeps::iPEPS)::iPEPS
+     ipepsbar = deepcopy(ipeps)
+     for xx in 1:ipeps.Lx, yy in 1:ipeps.Ly
+          ipepsbar[xx, yy] = bar(ipeps[xx, yy])
+     end
+     return ipepsbar
+end
+
+# ================ Debug functions ==========================
 """
 Check the quantum numbers for `ipeps::iPEPS` and corresponding `envs::iPEPSenv`. \n
 Warnings will be thrown if mismatched quantum numbers are detected.\n

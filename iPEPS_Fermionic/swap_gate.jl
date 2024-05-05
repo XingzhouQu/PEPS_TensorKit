@@ -15,13 +15,13 @@ function swap_gate(s1::T, s2::T; Eltype=Float64) where {T<:ElementarySpace}
     # -------------------------------------------
     tmp1 = id(s1)
     tmp2 = id(s2)
-    tmp = tmp1 ⊗ tmp2
-    for (f1, f2) in fusiontrees(tmp)
+    gate = tmp1 ⊗ tmp2
+    for (f1, f2) in fusiontrees(gate)
         # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
         # 为了类型稳定，不需要改动的也乘一个1 ？
-        isoddParity(f1, reptype) ? (tmp[f1, f2] *= -one(Eltype)) : (tmp[f1, f2] *= one(Eltype))
+        isoddParity(f1, reptype) ? (gate[f1, f2] *= -one(Eltype)) : (gate[f1, f2] *= one(Eltype))
     end
-    return tmp
+    return gate
 end
 
 """
@@ -44,8 +44,8 @@ function isoddParity(f::FusionTree, reptype::T) where {T<:Union{Type{U1Irrep},Ty
         else
             return false
         end
-    elseif reptype == SU2Irrep
-        if isodd(s1[1].j) && isodd(s2[1].j)
+    elseif reptype == SU2Irrep  # 这里不知道对不对？
+        if isodd(s1[1].j * 2) && isodd(s2[1].j * 2)
             return true
         else
             return false

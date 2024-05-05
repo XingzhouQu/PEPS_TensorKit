@@ -1,6 +1,7 @@
 import Base.getindex
 import Base.setindex!
 include("./ini_env.jl")
+include("./swap_gate.jl")
 
 struct iPEPS
     Ms::AbstractMatrix{AbstractTensorMap}

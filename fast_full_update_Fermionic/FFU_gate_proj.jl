@@ -1,3 +1,4 @@
+# TODO: add swap_gate
 """
 return the full environment of bond tensor at site1 and site2.
 (The two sites should be nearest-neighbor now.)
