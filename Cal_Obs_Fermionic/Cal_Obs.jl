@@ -1,15 +1,20 @@
-# TODO: add swap_gate
 include("../iPEPS_Fermionic/swap_gate.jl")
 
 function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{String}, para::Dict{Symbol,Any}; site=[1, 1], get_op::Function)
     x = site[1]
     y = site[2]
     vals = Vector{Number}(undef, length(Ops))
+    M = ipeps[x, y]
+    Mbar = bar(ipeps[x, y])
+    gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
+    gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
+    println("Fermionic! Calculating $Ops at site $site")
     # 顺序：CTTM?̄MCCTCT
     @tensor ψ□ψ[pup, pdn] :=
         envs[x, y].corner.lt[toT, toL] * envs[x, y].transfer.t[toT, toRT, toMtup, toMtdn] *
-        envs[x, y].transfer.l[toL, toLB, toMlup, toMldn] * ipeps[x, y][toMlup, toMtup, pup, toMrup, toMbup] *
-        ipeps[x, y]'[toMrdn, toMbdn, toMldn, toMtdn, pdn] * envs[x, y].corner.rt[toRT, toR] *
+        envs[x, y].transfer.l[toL, toLB, toMlup, toMldn] * gate1[toMlup, toMtdn, toMlupin, toMtdnin] *
+        M[toMlupin, toMtup, pup, toMrup, toMbupin] * Mbar[toMldn, toMtdn, pdn, toMrdnin, toMbdn] *
+        gate2[toMbup, toMrdn, toMbupin, toMrdnin] * envs[x, y].corner.rt[toRT, toR] *
         envs[x, y].corner.lb[toLB, toB] * envs[x, y].transfer.r[toMrup, toMrdn, toR, toRB] *
         envs[x, y].transfer.b[toB, toMbup, toMbdn, btoRB] * envs[x, y].corner.rb[btoRB, toRB]
     @tensor nrm = ψ□ψ[p, p]
@@ -27,18 +32,18 @@ end
 [site1, site2] = \n
 [左,右]; [上,下]; [左上,右下]; [右上,左下]
 """
-function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any};
+function Cal_Obs_2site(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any};
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     @assert Lx >= 2 || Ly >= 2 "The unit cell should contain no less than two sites"
     if 0.99 < norm(site1 - site2) < 1.01  # 近邻格点
-        println("Calculating $Gates at site $site1 and site $site2")
-        rslt = _2siteObs_adjSite(ipeps, envs, Gates, para, site1, site2, get_op)
+        println("Fermionic! Calculating $Gates at site $site1 and site $site2")
+        rslt = _2siteObs_adjSite(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op)
         return rslt
     elseif (abs(site1[1] - site2[1]) == 1) && (abs(site1[2] - site2[2]) == 1)
-        println("Calculating $Gates at site $site1 and site $site2")
-        rslt = _2siteObs_diagSite(ipeps, envs, Gates, para, site1, site2, get_op)
+        println("Fermionic! Calculating $Gates at site $site1 and site $site2")
+        rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op)
         return rslt
     else
         error("Larger distance is not supported yet.")
@@ -46,29 +51,57 @@ function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para
 end
 
 
-function _2siteObs_adjSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
+function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function)
     vals = Vector{Number}(undef, length(Gates))
     x1, y1 = site1
     x2, y2 = site2
-    if y2 == y1  # 横向的两个点.  顺序：CTTMMbarCTTMMbarCTTC.
-        @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
+    M1 = ipeps[x1, y1]
+    M1bar = ipepsbar[x1, y1]
+    M2 = ipeps[x2, y2]
+    M2bar = ipepsbar[x2, y2]
+    if y2 == y1  # 横向的两个点.
+        swgatel1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
+        swgatel2 = swap_gate(space(M1)[3], space(M1)[5]; Eltype=eltype(M1))
+        swgatel3 = swap_gate(space(M1bar)[3], space(swgatel2)[2]; Eltype=eltype(M1))
+        swgatel4 = swap_gate(space(swgatel3)[2], space(M1bar)[4]; Eltype=eltype(M1))
+        swgater4 = swap_gate(space(M2)[5], space(M2bar)[4]; Eltype=eltype(M1))
+        swgater3 = swap_gate(space(M2bar)[3], space(M2bar)[2]; Eltype=eltype(M1))
+        swgater2 = swap_gate(space(M2)[3], space(swgater3)[2]; Eltype=eltype(M1))
+        swgater1 = swap_gate(space(M2)[1], space(swgater2)[2]; Eltype=eltype(M1))
+        @tensor contractcheck = true ψ□ψ[pup1, pup2; pdn1, pdn2] :=
             envs[x1, y1].corner.lt[lt2t1, lt2l] * envs[x1, y1].transfer.l[lt2l, lb2l, l2Dup, l2Ddn] *
-            envs[x1, y1].transfer.t[lt2t1, t12t2, t12Dup, t12Ddn] * ipeps[x1, y1][l2Dup, t12Dup, pup1, Dupin, b12Dup] *
-            ipeps[x1, y1]'[Ddnin, b12Ddn, l2Ddn, t12Ddn, pdn1] * envs[x1, y1].corner.lb[lb2l, lb2b1] *
-            envs[x1, y1].transfer.b[lb2b1, b12Dup, b12Ddn, b12b2] * envs[x2, y2].transfer.t[t12t2, rt2t2, t22Dup, t22Ddn] *
-            ipeps[x2, y2][Dupin, t22Dup, pup2, r2Dup, b22Dup] * ipeps[x2, y2]'[r2Ddn, b22Ddn, Ddnin, t22Ddn, pdn2] *
-            envs[x2, y2].corner.rt[rt2t2, rt2r] * envs[x2, y2].transfer.r[r2Dup, r2Ddn, rt2r, rb2r] *
-            envs[x2, y2].transfer.b[b12b2, b22Dup, b22Ddn, rb2b2] * envs[x2, y2].corner.rb[rb2b2, rb2r]
+            envs[x1, y1].transfer.t[lt2t1, t12t2, t12Dup, t12Ddn] * swgatel1[l2Dup, t12Ddn, l2Dupin, t12Ddnin] *
+            M1[l2Dupin, t12Dup, pup1in, Dupin, b12Dupin] * swgatel2[pup1, b12Dupin2, pup1in, b12Dupin] *
+            envs[x1, y1].corner.lb[lb2l, lb2b1] * M1bar[l2Ddn, t12Ddnin, pdn1in, Ddnin2, b12Ddn] *
+            envs[x1, y1].transfer.b[lb2b1, b12Dup, b12Ddn, b12b2] * swgatel3[pdn1, b12Dupin3, pdn1in, b12Dupin2] *
+            swgatel4[b12Dup, Ddnin, binDupin3, Ddnin2] * swgater1[Dupin, t22Ddn, Dupinin, t22Ddnin3] *
+            envs[x2, y2].transfer.t[t12t2, rt2t2, t22Dup, t22Ddn] * M2[Dupinin, t22Dup, pup2in, r2Dup, b22Dupin] *
+            swgater2[pup2, t22Ddnin3, pup2in, t22Ddnin2] * swgater3[pdn2, t22Ddnin2, pdn2in, t22Ddnin] *
+            M2bar[Ddnin, t22Ddnin, pdn2in, r2Ddnin, b22Ddn] * envs[x2, y2].transfer.b[b12b2, b22Dup, b22Ddn, rb2b2] *
+            envs[x2, y2].corner.rt[rt2t2, rt2r] * swgater4[b22Dup, r2Ddn, b22Dupin, r2Ddnin] *
+            envs[x2, y2].transfer.r[r2Dup, r2Ddn, rt2r, rb2r] * envs[x2, y2].corner.rb[rb2b2, rb2r]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x2 == x1  # 纵向的两个点
-        @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
+        swgatet1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
+        swgatet2 = swap_gate(space(M1bar)[3], space(M1bar)[4]; Eltype=eltype(M1))
+        swgatet3 = swap_gate(space(M1)[3], space(swgatet2)[2]; Eltype=eltype(M1))
+        swgatet4 = swap_gate(space(M1)[4], space(swgatet3)[2]; Eltype=eltype(M1))
+        swgateb4 = swap_gate(space(M2bar)[4], space(M2)[5]; Eltype=eltype(M1))
+        swgateb3 = swap_gate(space(M2)[1], space(M2)[3]; Eltype=eltype(M1))
+        swgateb2 = swap_gate(space(M2bar)[3], space(swgateb3)[1]; Eltype=eltype(M1))
+        swgateb1 = swap_gate(space(M2bar)[2], space(swgateb2)[2]; Eltype=eltype(M1))
+        @tensor contractcheck = true ψ□ψ[pup1, pup2; pdn1, pdn2] :=
             envs[x1, y1].corner.lt[lt2t, lt2l1] * envs[x1, y1].transfer.l[lt2l1, l12l2, l12Dup, l12Ddn] *
-            envs[x1, y1].transfer.t[lt2t, rt2t, t2Dup, t2Ddn] * ipeps[x1, y1][l12Dup, t2Dup, pup1, r12Dup, Dupin] *
-            ipeps[x1, y1]'[r12Ddn, Ddnin, l12Ddn, t2Ddn, pdn1] * envs[x1, y1].corner.rt[rt2t, rt2r1] *
+            envs[x1, y1].transfer.t[lt2t, rt2t, t2Dup, t2Ddn] * envs[x1, y1].corner.rt[rt2t, rt2r1] *
+            swgatet1[l12Dup, t2Ddn, l12Dupin, t2Ddn] * M1[l12Dupin, t2Dup, pup1in, r12Dupin, Dupin] *
+            M1bar[l12Ddn, t2Ddnin, pdn1in, r12Ddnin, Ddnin] * swgatet2[pdn1, r12Ddnin2, pdn1in, r12Ddnin] *
+            swgatet3[pup1, r12Ddnin3, pup1in, r12Ddnin2] * swgatet4[r12Dup, r12Ddn, r12Dupin, r12Ddnin3] *
             envs[x1, y1].transfer.r[r12Dup, r12Ddn, rt2r1, r12r2] * envs[x2, y2].transfer.l[l12l2, lb2l2, l22Dup, l22Ddn] *
-            ipeps[x2, y2][l22Dup, Dupin, pup2, r22Dup, b2Dup] * ipeps[x2, y2]'[r22Ddn, b2Ddn, l22Ddn, Ddnin, pdn2] *
-            envs[x2, y2].transfer.r[r22Dup, r22Ddn, r12r2, rb2r2] * envs[x2, y2].corner.lb[lb2l2, lb2b] *
+            envs[x2, y2].corner.lb[lb2l2, lb2b] * swgateb1[Ddnin, l22Dup, Ddninin, l22Dupin3] *
+            M2bar[l22Ddn, Ddninin, pdn2in, r22Ddnin, b2Ddn] * swgateb2[pdn2, l22Dupin3, pdn2in, l22Dupin2] *
+            swgateb3[l22Dupin2, pup2, l22Dupin, pup2in] * M2[l22Dupin, Dupin, pup2in, r22Dup, b2Dupin] *
+            swgateb4[r22Ddn, b2Dup, r22Ddnin, b2Dupin] * envs[x2, y2].transfer.r[r22Dup, r22Ddn, r12r2, rb2r2] *
             envs[x2, y2].transfer.b[lb2b, b2Dup, b2Ddn, rb2b] * envs[x2, y2].corner.rb[rb2b, rb2r2]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     else
@@ -88,39 +121,79 @@ end
 #               (3) auxsite  (4) site2
 # or: (1) auxsite    (2) site1
 #     (3) site2      (4) auxsite
-function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
+function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     vals = Vector{Number}(undef, length(Gates))
     x1, y1 = site1
     x2, y2 = site2
+    M1 = ipeps[x1, y1]
+    M1bar = ipepsbar[x1, y1]
+    M2 = ipeps[x2, y2]
+    M2bar = ipepsbar[x2, y2]
     if x1 == (x2 - 1 - Int(ceil((x2 - 1) / Lx) - 1) * Lx)  # 左上到右下的两个点. 这里调用 CTMRG 求环境的函数
-        QuR = get_QuR(ipeps, envs, x2, y1)  # [lχ, lupD, ldnD; bχ, bupD, bdnD]
-        QdL = get_QdL(ipeps, envs, x1, y2)  # [tχ, tupD, tdnD; rχ, rupD, rdnD]
+        QuR = get_QuR(ipeps, ipepsbar, envs, x2, y1)  # [lχ, lupD, ldnD; bχ, bupD, bdnD]
+        QdL = get_QdL(ipeps, ipepsbar, envs, x1, y2)  # [tχ, tupD, tdnD; rχ, rupD, rdnD]
+        gatelt1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
+        gatelt2 = swap_gate(space(M1)[3], space(M1)[5]; Eltype=eltype(M1))
+        gatelt3 = swap_gate(space(gatelt2)[1], space(QuR)[3]; Eltype=eltype(M1))
+        gatelt4 = swap_gate(space(gatelt2)[2], space(gatelt3)[2]; Eltype=eltype(M1))
+        gatelt5 = swap_gate(space(M1bar)[3], space(M1bar)[4]; Eltype=eltype(M1))
+        gatelt6 = swap_gate(space(gatelt5)[1], space(gatelt4)[1]; Eltype=eltype(M1))
+        gaterb6 = swap_gate(space(M2)[5], space(M2bar)[4]; Eltype=eltype(M1))
+        gaterb5 = swap_gate(space(M2bar)[2], space(M2bar)[3]; Eltype=eltype(M1))
+        gaterb4 = swap_gate(space(QdL)[5], space(gaterb5)[2]; Eltype=eltype(M1))
+        gaterb3 = swap_gate(space(gaterb4)[1], space(gaterb5)[1]; Eltype=eltype(M1))
+        gaterb2 = swap_gate(space(M2)[1], space(M2)[3]; Eltype=eltype(M1))
+        gaterb1 = swap_gate(space(QuR)[6], space(gaterb2)[2]; Eltype=eltype(M1))
         @tensor QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
             envs[x1, y1].transfer.t[rχin, rχ, bupDin, rupD] * envs[x1, y1].corner.lt[rχin, bχin] *
-            envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * ipeps[x1, y1][rupDin, bupDin, pup1, rupMD, bupMD] *
-            ipeps[x1, y1]'[rdnMD, bdnMD, rdnD, rupD, pdn1]
+            envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * gatelt1[rupDin, rupD, rupDin2, rupDin3] *
+            M1[rupDin2, bupDin, pup1in, rupMD, bupMDin] * gatelt2[pup1in2, bupMDin2, pup1in, bupMDin] *
+            gatelt3[pup1, rdnMDin2, pup1in2, rdnMD] * gatelt4[bupMDin3, rdnMDin, bupMDin2, rdnMDin2] *
+            gatelt5[pdn1in2, rdnMDin, pdn1in, rdnMDin3] * M1bar[rdnD, rupDin3, pdn1in, rdnMDin3, bdnMD] *
+            gatelt6[pdn1, bupMD, pdn1in2, bupMDin3]
         @tensor QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
             envs[x2, y2].corner.rb[lχin, tχin] * envs[x2, y2].transfer.r[lupMDin, ldnDin, tχ, tχin] *
-            envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * ipeps[x2, y2]'[ldnDin, tdnDin, ldnD, tdnD, pdn4] *
-            ipeps[x2, y2][lupD, tupD, pup4, lupMDin, tupDin]
+            envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * gaterb6[tupDin, ldnDin, tupDin2, ldnDin2] *
+            M2bar[ldnD, tdnDin2, pdn4in, ldnDin2, tdnDin] * gaterb5[tdnDin3, pdn4in2, tdnDin2, pdn4in] *
+            M2[lupDin3, tupD, pup4in, lupMDin, tupDin2] * gaterb2[lupDin, pup4in2, lupDin3, pup4in] *
+            gaterb3[lupDin, tdnDin4, lupDin2, tdnDin3] * gaterb4[lupDin2, pdn4, lupD, pdn4in2] *
+            gaterb1[tdnDin4, pup4, tdnD, pup4in2]
         @tensor ψ□ψ[pup1, pup4; pdn1, pdn4] :=
             QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x1 == (x2 + 1 - Int(ceil((x2 + 1) / Lx) - 1) * Lx)  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
-        QuL = get_QuL(ipeps, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
-        QdR = get_QdR(ipeps, envs, x1, y2)  # [lχ, lupD, ldnD, tχ, tupD, tdnD]
+        QuL = get_QuL(ipeps, ipepsbar, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
+        QdR = get_QdR(ipeps, ipepsbar, envs, x1, y2)  # [lχ, lupD, ldnD, tχ, tupD, tdnD]
+        gatelb1 = swap_gate(space(M2)[1], space(M2bar)[2]; Eltype=eltype(M1))
+        gatelb4 = swap_gate(space(M2)[3], space(M2)[5]; Eltype=eltype(M1))
+        gatelb2 = swap_gate(space(M2)[4], space(gatelb4)[1]; Eltype=eltype(M1))
+        gatelb5 = swap_gate(space(M2bar)[3], space(gatelb4)[2]; Eltype=eltype(M1))
+        gatelb3 = swap_gate(space(gatelb2)[1], space(gatelb5)[1]; Eltype=eltype(M1))
+        gatelb6 = swap_gate(space(M2bar)[4], space(gatelb5)[2]; Eltype=eltype(M1))
+        gatert6 = swap_gate(space(M1)[5], space(M1bar)[4]; Eltype=eltype(M1))
+        gatert3 = swap_gate(space(M1bar)[3], space(M1bar)[2]; Eltype=eltype(M1))
+        gatert5 = swap_gate(space(M1bar)[1], space(gatert3)[1]; Eltype=eltype(M1))
+        gatert2 = swap_gate(space(M1)[3], space(gatert3)[2]; Eltype=eltype(M1))
+        gatert1 = swap_gate(space(M1)[1], space(gatert2)[2]; Eltype=eltype(M1))
+        gatert4 = swap_gate(space(gatert2)[1], space(gatert5)[1]; Eltype=eltype(M1))
         @tensor QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
             envs[x1, y1].corner.rt[lχin, bχin] * envs[x1, y1].transfer.t[lχ, lχin, bupDin, bdnDin] *
-            envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * ipeps[x1, y1][lupD, bupDin, pup2, lupDin, bupD] *
-            ipeps[x1, y1]'[ldnDin, bdnD, ldnD, bdnDin, pdn2]
+            envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * M1[lupDin2, bupDin, pup2in, lupDin, bupDin2] *
+            gatert1[lupD, bdnDin, lupDin2, bdnDin4] * gatert6[bupD, ldnDin, bupDin2, ldnDin2] *
+            M1bar[ldnDin3, bdnDin2, pdn2in, ldnDin2, bdnD] * gatert2[pup2in2, bdnDin4, pup2in, bdnDin3] *
+            gatert3[pdn2in2, bdnDin3, pdn2in, bdnDin2] * gatert5[ldnDin4, pdn2, ldnDin3, pdn2in2] *
+            gatert4[pup2, ldnD, pup2in2, ldnDin4]
         @tensor QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
-            envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * ipeps[x2, y2]'[rdnD, tdnDin, rdnDin, tdnD, pup3] *
-            ipeps[x2, y2][rupDin, tupD, pdn3, rupD, tupDin]
+            envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * gatelb1[rupDin, tdnD, rupDin2, tdnDin2] *
+            M2bar[rdnDin, tdnDin2, pup3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pdn3in, rupDin3, tupDin2] *
+            gatelb4[pdn3in2, tupDin3, pdn3in, tupDin2] * gatelb2[rupDin4, pdn3, rupDin3, pdn3in2] *
+            gatelb6[rdnD, tupDin, rdnDin2, tupDin4] * gatelb5[pup3in2, tupDin4, pup3in, tupDin3] *
+            gatelb3[rupD, pup3, rupDin4, pup3in2]
         @tensor ψ□ψ[pup2, pup3; pdn2, pdn3] :=
             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
@@ -136,28 +209,3 @@ function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String},
     rslt = Dict(Gates[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
     return rslt
 end
-
-# 这样全都放一起 contract 会爆内存
-# @tensor contractcheck = true costcheck = warn ψ□ψ[pup1, pup4; pdn1, pdn4] :=
-#     envs[x1, y1].corner.lt[CLTr1, CLTb1] * envs[x1, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
-#     envs[x1, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x1, y1][TLupD1, TTupD1, pup1, rupD1, bupD1] *
-#     ipeps[x1, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, pdn1] * envs[x2, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
-#     envs[x2, y1].corner.rt[TTr2, CRTb2] * ipeps[x2, y1][rupD1, TTupD2, p2, rupD2, bupD2] *
-#     ipeps[x2, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, p2] * envs[x2, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
-#     envs[x1, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * ipeps[x1, y2][TLupD3, bupD1, p3, rupD3, bupD3] *
-#     ipeps[x1, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, p3] * envs[x1, y2].corner.lb[TLb3, CLBr3] *
-#     envs[x1, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x2, y2][rupD3, bupD2, pup4, rupD4, bupD4] *
-#     ipeps[x2, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, pdn4] * envs[x2, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
-#     envs[x2, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x2, y2].corner.rb[TBr4, TRb4]
-
-# @tensor contractcheck = true costcheck = warn ψ□ψ[pup2, pup3; pdn2, pdn3] :=
-# envs[x2, y1].corner.lt[CLTr1, CLTb1] * envs[x2, y1].transfer.t[CLTr1, TTr1, TTupD1, TTdnD1] *
-# envs[x2, y1].transfer.l[CLTb1, TLb1, TLupD1, TLdnD1] * ipeps[x2, y1][TLupD1, TTupD1, p1, rupD1, bupD1] *
-# ipeps[x2, y1]'[rdnD1, bdnD1, TLdnD1, TTdnD1, p1] * envs[x1, y1].transfer.t[TTr1, TTr2, TTupD2, TTdnD2] *
-# envs[x2, y2].transfer.l[TLb1, TLb3, TLupD3, TLdnD3] * envs[x1, y1].corner.rt[TTr2, CRTb2] *
-# envs[x2, y2].corner.lb[TLb3, CLBr3] * ipeps[x1, y1][rupD1, TTupD2, pup2, rupD2, bupD2] *
-# ipeps[x1, y1]'[rdnD2, bdnD2, rdnD1, TTdnD2, pdn2] * ipeps[x2, y2][TLupD3, bupD1, pup3, rupD3, bupD3] *
-# ipeps[x2, y2]'[rdnD3, bdnD3, TLdnD3, bdnD1, pdn3] * envs[x1, y1].transfer.r[rupD2, rdnD2, CRTb2, TRb2] *
-# envs[x2, y2].transfer.b[CLBr3, bupD3, bdnD3, TBr3] * ipeps[x1, y2][rupD3, bupD2, p4, rupD4, bupD4] *
-# ipeps[x1, y2]'[rdnD4, bdnD4, rdnD3, bdnD2, p4] * envs[x1, y2].transfer.r[rupD4, rdnD4, TRb2, TRb4] *
-# envs[x1, y2].transfer.b[TBr3, bupD4, bdnD4, TBr4] * envs[x1, y2].corner.rb[TBr4, TRb4]

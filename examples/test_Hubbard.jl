@@ -26,11 +26,11 @@ function main()
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
-    para[:pspace] = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
+    para[:pspace] = Rep[U₁×SU₂]((0, 0) => 1, (1, 1 // 2) => 1, (2, 0) => 1)
 
-    pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacelr = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
-    aspacetb = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
+    pspace = Rep[U₁×SU₂]((0, 0) => 1, (1, 1 // 2) => 1, (2, 0) => 1)
+    aspacelr = Rep[U₁×SU₂]((0, 0) => 1, (1, 1 // 2) => 1, (2, 0) => 1)
+    aspacetb = Rep[U₁×SU₂]((0, 0) => 1, (1, 1 // 2) => 1, (2, 0) => 1)
     Lx = 2
     Ly = 2
     # 初始化 ΓΛ 形式的 iPEPS, 做 simple update
@@ -43,7 +43,7 @@ function main()
     @show space(ipeps[1, 1])
     envs = iPEPSenv(ipeps)
     check_qn(ipeps, envs)
-    CTMRG!(ipeps, envs, para[:χ], para[:CTMit])
+    CTMRG!(ipeps, bar(ipeps), envs, para[:χ], para[:CTMit])
     check_qn(ipeps, envs)
 
     save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")

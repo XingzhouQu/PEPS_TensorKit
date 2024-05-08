@@ -58,7 +58,7 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     t = para[:t]
     U = para[:U]
     μ = para[:μ]
-    pspace = GradedSpace{fSU₂}((0 => 2), (1 // 2 => 1))
+    pspace = para[:pspace]
     Opnd = nd(pspace)
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
