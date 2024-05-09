@@ -1,18 +1,17 @@
-# TODO 把 ipepsbar 预先全都算出来，可以多占一点内存，省去循环中来来回回求 Abar 的时间 ===========
 """
 作用投影算符以裁剪环境, 左侧transfer张量.
 """
 function apply_proj_left!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
     A = ipeps[x, y]
     Abar = ipepsbar[x, y]
-    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
     @tensor PTMMP[(tχNew, bχNew); (rupD, rdnD)] :=
-        projup[tχNew, tχin, tupDin, tdnDin] * gate1[rupDin, tdnDMin, rupDMin, tdnDin] *
-        A[rupDMin, tupDin, p, rupD, upDMin] * envs[x, y].transfer.l[tχin, bχin, rupDin, rdnDin] *
-        Abar[rdnDin, tdnDMin, p, rdnDMin, dnDMin] * gate2[rdnD, upDin, rdnDMin, upDMin] *
-        projdn[bχin, upDin, dnDin, bχNew]
+        envs[x, y].transfer.l[tχin, bχin, rupDin, rdnDin] * projup[tχNew, tχin, tupDin, tdnDin] *
+        gate1[rupDin, tdnDin, rupDin2, tdnDin2] * A[rupDin2, tupDin, p, rupD, upDin2] *
+        Abar[rdnDin, tdnDin2, p, rdnDin2, dnDin] * projdn[bχin, upDin, dnDin, bχNew] *
+        gate2[rdnD, upDin, rdnDin2, upDin2]
 
     # 更新右侧的环境
     envs[x+1, y].transfer.l = PTMMP / norm(PTMMP, Inf)
@@ -23,14 +22,14 @@ end
 function apply_proj_right!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
     A = ipeps[x, y]
     Abar = ipepsbar[x, y]
-    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
-    gate2 = swap_gate(space(A)[4], space(Abar)[5]; Eltype=eltype(A))
+    gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
     @tensor PTMMP[(lupD, ldnD, tχNew, bχNew); ()] :=
-        projup[tχnew, tχin, tupDin, tdnDin] * gate1[lupD, tdnDMin, lupDMin, tdnDin] *
-        A[lupDMin, tupDin, p, lupDin, upDMin] * envs[x, y].transfer.r[lupDin, ldnDin, tχin, bχin] *
-        gate2[ldnDMin, upDMin, ldnDin, upDin] * Abar[ldnD, tdnDMin, p, ldnDMin, dnDin] *
-        projdn[bχin, upDin, dnDin, bχnew]
+        envs[x, y].transfer.r[lupDin, ldnDin, tχin, bχin] * projup[tχNew, tχin, tupDin, tdnDin] *
+        A[lupDin2, tupDin, p, lupDin, upDin2] * gate1[lupD, tdnDin, lupDin2, tdnDin2] *
+        gate2[ldnDin, upDin, ldnDin2, upDin2] * Abar[ldnD, tdnDin2, p, ldnDin2, dnDin] *
+        projdn[bχin, upDin, dnDin, bχNew]
 
     # 更新左侧的环境
     envs[x-1, y].transfer.r = PTMMP / norm(PTMMP, Inf)
@@ -41,13 +40,13 @@ end
 function apply_proj_top!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
     A = ipeps[x, y]
     Abar = ipepsbar[x, y]
-    gate1 = swap_gate(space(A)[1], space(A)[2]; Eltype=eltype(A))
+    gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
     @tensor PTMMP[(lχNew, rχNew); (bupD, bdnD)] :=
-        projleft[lχin, lupDin, ldnDin, lχNew] * gate1[lupDin, bdnDMin, lupDMin, bdnDin] *
-        A[lupDMin, bupDin, p, rupDin, bupDMin] * envs[x, y].transfer.t[lχin, rχin, bupDin, bdnDin] *
-        Abar[ldnDin, bdnDMin, p, rdnDMin, bdnD] * gate2[rdnDin, bupD, rdnDMin, bupDMin] *
+        envs[x, y].transfer.t[lχin, rχin, bupDin, bdnDin] * projleft[lχin, lupDin, ldnDin, lχNew] *
+        gate1[lupDin, bdnDin, lupDin2, bdnDin2] * A[lupDin2, bupDin, p, rupDin, bupDin2] *
+        Abar[ldnDin, bdnDin2, p, rdnDin2, bdnD] * gate2[rdnDin, bupD, rdnDin2, bupDin2] *
         projright[rχNew, rχin, rupDin, rdnDin]
 
     # 更新下侧的环境
@@ -59,13 +58,13 @@ end
 function apply_proj_bottom!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
     A = ipeps[x, y]
     Abar = ipepsbar[x, y]
-    gate1 = swap_gate(space(Abar)[1], space(Abar)[2]; Eltype=eltype(A))
-    gate2 = swap_gate(space(Abar)[4], space(Abar)[5]; Eltype=eltype(A))
+    gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
+    gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
     @tensor PTMMP[(lχNew, tupD, tdnD, rχNew); ()] :=
-        projleft[lχin, lupDin, ldnDin, lχNew] * gate1[lupDMin, tdnD, lupDin, tdnDMin] *
-        Abar[ldnDin, tdnDMin, p, rdnDMin, tdnDin] * envs[x, y].transfer.b[lχin, tupDin, tdnDin, rχin] *
-        A[lupDMin, tupD, p, rupDin, tupDMin] * gate2[rdnDin, tupDMin, rdnDMin, tupDin] *
+        envs[x, y].transfer.b[lχin, tupDin, tdnDin, rχin] * projleft[lχin, lupDin, ldnDin, lχNew] *
+        Abar[ldnDin, tdnDin2, p, rdnDin2, tdnDin] * gate1[lupDin, tdnD, lupDin2, tdnDin2] *
+        gate2[rdnDin, tupDin, rdnDin2, tupDin2] * A[lupDin2, tupD, p, rupDin, tupDin2] *
         projright[rχNew, rχin, rupDin, rdnDin]
 
     # 更新上侧的环境

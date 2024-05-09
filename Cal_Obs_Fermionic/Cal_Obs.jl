@@ -1,19 +1,19 @@
 include("../iPEPS_Fermionic/swap_gate.jl")
 
-function Cal_Obs_1site(ipeps::iPEPS, envs::iPEPSenv, Ops::Vector{String}, para::Dict{Symbol,Any}; site=[1, 1], get_op::Function)
+function Cal_Obs_1site(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Ops::Vector{String}, para::Dict{Symbol,Any}; site=[1, 1], get_op::Function)
     x = site[1]
     y = site[2]
     vals = Vector{Number}(undef, length(Ops))
     M = ipeps[x, y]
-    Mbar = bar(ipeps[x, y])
+    Mbar = ipepsbar[x, y]
     gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
     gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
     println("Fermionic! Calculating $Ops at site $site")
     # 顺序：CTTM?̄MCCTCT
-    @tensor ψ□ψ[pup, pdn] :=
+    @tensor contractcheck = true ψ□ψ[pup, pdn] :=
         envs[x, y].corner.lt[toT, toL] * envs[x, y].transfer.t[toT, toRT, toMtup, toMtdn] *
         envs[x, y].transfer.l[toL, toLB, toMlup, toMldn] * gate1[toMlup, toMtdn, toMlupin, toMtdnin] *
-        M[toMlupin, toMtup, pup, toMrup, toMbupin] * Mbar[toMldn, toMtdn, pdn, toMrdnin, toMbdn] *
+        M[toMlupin, toMtup, pup, toMrup, toMbupin] * Mbar[toMldn, toMtdnin, pdn, toMrdnin, toMbdn] *
         gate2[toMbup, toMrdn, toMbupin, toMrdnin] * envs[x, y].corner.rt[toRT, toR] *
         envs[x, y].corner.lb[toLB, toB] * envs[x, y].transfer.r[toMrup, toMrdn, toR, toRB] *
         envs[x, y].transfer.b[toB, toMbup, toMbdn, btoRB] * envs[x, y].corner.rb[btoRB, toRB]
@@ -75,7 +75,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
             M1[l2Dupin, t12Dup, pup1in, Dupin, b12Dupin] * swgatel2[pup1, b12Dupin2, pup1in, b12Dupin] *
             envs[x1, y1].corner.lb[lb2l, lb2b1] * M1bar[l2Ddn, t12Ddnin, pdn1in, Ddnin2, b12Ddn] *
             envs[x1, y1].transfer.b[lb2b1, b12Dup, b12Ddn, b12b2] * swgatel3[pdn1, b12Dupin3, pdn1in, b12Dupin2] *
-            swgatel4[b12Dup, Ddnin, binDupin3, Ddnin2] * swgater1[Dupin, t22Ddn, Dupinin, t22Ddnin3] *
+            swgatel4[b12Dup, Ddnin, b12Dupin3, Ddnin2] * swgater1[Dupin, t22Ddn, Dupinin, t22Ddnin3] *
             envs[x2, y2].transfer.t[t12t2, rt2t2, t22Dup, t22Ddn] * M2[Dupinin, t22Dup, pup2in, r2Dup, b22Dupin] *
             swgater2[pup2, t22Ddnin3, pup2in, t22Ddnin2] * swgater3[pdn2, t22Ddnin2, pdn2in, t22Ddnin] *
             M2bar[Ddnin, t22Ddnin, pdn2in, r2Ddnin, b22Ddn] * envs[x2, y2].transfer.b[b12b2, b22Dup, b22Ddn, rb2b2] *
@@ -94,7 +94,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
         @tensor contractcheck = true ψ□ψ[pup1, pup2; pdn1, pdn2] :=
             envs[x1, y1].corner.lt[lt2t, lt2l1] * envs[x1, y1].transfer.l[lt2l1, l12l2, l12Dup, l12Ddn] *
             envs[x1, y1].transfer.t[lt2t, rt2t, t2Dup, t2Ddn] * envs[x1, y1].corner.rt[rt2t, rt2r1] *
-            swgatet1[l12Dup, t2Ddn, l12Dupin, t2Ddn] * M1[l12Dupin, t2Dup, pup1in, r12Dupin, Dupin] *
+            swgatet1[l12Dup, t2Ddn, l12Dupin, t2Ddnin] * M1[l12Dupin, t2Dup, pup1in, r12Dupin, Dupin] *
             M1bar[l12Ddn, t2Ddnin, pdn1in, r12Ddnin, Ddnin] * swgatet2[pdn1, r12Ddnin2, pdn1in, r12Ddnin] *
             swgatet3[pup1, r12Ddnin3, pup1in, r12Ddnin2] * swgatet4[r12Dup, r12Ddn, r12Dupin, r12Ddnin3] *
             envs[x1, y1].transfer.r[r12Dup, r12Ddn, rt2r1, r12r2] * envs[x2, y2].transfer.l[l12l2, lb2l2, l22Dup, l22Ddn] *
@@ -147,14 +147,14 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         gaterb3 = swap_gate(space(gaterb4)[1], space(gaterb5)[1]; Eltype=eltype(M1))
         gaterb2 = swap_gate(space(M2)[1], space(M2)[3]; Eltype=eltype(M1))
         gaterb1 = swap_gate(space(QuR)[6], space(gaterb2)[2]; Eltype=eltype(M1))
-        @tensor QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
+        @tensor contractcheck = true QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
             envs[x1, y1].transfer.t[rχin, rχ, bupDin, rupD] * envs[x1, y1].corner.lt[rχin, bχin] *
             envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * gatelt1[rupDin, rupD, rupDin2, rupDin3] *
             M1[rupDin2, bupDin, pup1in, rupMD, bupMDin] * gatelt2[pup1in2, bupMDin2, pup1in, bupMDin] *
             gatelt3[pup1, rdnMDin2, pup1in2, rdnMD] * gatelt4[bupMDin3, rdnMDin, bupMDin2, rdnMDin2] *
             gatelt5[pdn1in2, rdnMDin, pdn1in, rdnMDin3] * M1bar[rdnD, rupDin3, pdn1in, rdnMDin3, bdnMD] *
             gatelt6[pdn1, bupMD, pdn1in2, bupMDin3]
-        @tensor QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
+        @tensor contractcheck = true QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
             envs[x2, y2].corner.rb[lχin, tχin] * envs[x2, y2].transfer.r[lupMDin, ldnDin, tχ, tχin] *
             envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * gaterb6[tupDin, ldnDin, tupDin2, ldnDin2] *
             M2bar[ldnD, tdnDin2, pdn4in, ldnDin2, tdnDin] * gaterb5[tdnDin3, pdn4in2, tdnDin2, pdn4in] *
@@ -180,14 +180,14 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         gatert2 = swap_gate(space(M1)[3], space(gatert3)[2]; Eltype=eltype(M1))
         gatert1 = swap_gate(space(M1)[1], space(gatert2)[2]; Eltype=eltype(M1))
         gatert4 = swap_gate(space(gatert2)[1], space(gatert5)[1]; Eltype=eltype(M1))
-        @tensor QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
+        @tensor contractcheck = true QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
             envs[x1, y1].corner.rt[lχin, bχin] * envs[x1, y1].transfer.t[lχ, lχin, bupDin, bdnDin] *
             envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * M1[lupDin2, bupDin, pup2in, lupDin, bupDin2] *
             gatert1[lupD, bdnDin, lupDin2, bdnDin4] * gatert6[bupD, ldnDin, bupDin2, ldnDin2] *
             M1bar[ldnDin3, bdnDin2, pdn2in, ldnDin2, bdnD] * gatert2[pup2in2, bdnDin4, pup2in, bdnDin3] *
             gatert3[pdn2in2, bdnDin3, pdn2in, bdnDin2] * gatert5[ldnDin4, pdn2, ldnDin3, pdn2in2] *
             gatert4[pup2, ldnD, pup2in2, ldnDin4]
-        @tensor QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
+        @tensor contractcheck = true QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
             envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * gatelb1[rupDin, tdnD, rupDin2, tdnDin2] *
             M2bar[rdnDin, tdnDin2, pup3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pdn3in, rupDin3, tupDin2] *
