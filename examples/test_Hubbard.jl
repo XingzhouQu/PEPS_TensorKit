@@ -16,13 +16,13 @@ function main()
     para = Dict{Symbol,Any}()
     para[:t] = 1.0
     para[:U] = 8.0
-    para[:μ] = -4.0
+    para[:μ] = 5.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
     para[:maxStep1τ] = 100  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 100  # env bond dimension
-    para[:CTMit] = 20  # CTMRG iteration times
+    para[:Dk] = 8  # Dkept in the simple udate
+    para[:χ] = 150  # env bond dimension
+    para[:CTMit] = 30  # CTMRG iteration times
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
@@ -58,29 +58,31 @@ function main()
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
-    Obs1 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN", "Δₛ", "Δₛdag"], para; site1=[1, 1], site2=[1, 2], get_op=get_op_Hubbard)
-    Obs2 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN", "Δₛ", "Δₛdag"], para; site1=[1, 1], site2=[2, 1], get_op=get_op_Hubbard)
-    Obs3 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN", "Δₛ", "Δₛdag"], para; site1=[2, 1], site2=[2, 2], get_op=get_op_Hubbard)
-    Obs4 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN", "Δₛ", "Δₛdag"], para; site1=[1, 2], site2=[2, 2], get_op=get_op_Hubbard)
+    site1Obs = ["N"]                                # 计算这些单点观测量
+    site2Obs = ["hij", "SS", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
+    # sites = [[x, y] for x in 1:Lx, y in 1:Ly]
+    Eg = 0.0
+    doping = 0.0
+    for xx in 1:Lx, yy in 1:Ly
+        Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_Hubbard)
+        @show Obs1si
+        doping += get(Obs1si, "N", NaN)
+
+        Obs2si = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_Hubbard)
+        @show Obs2si
+        Eg += get(Obs2si, "hij", NaN)
+        Obs2si = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx, yy + 1], get_op=get_op_Hubbard)
+        @show Obs2si
+        Eg += get(Obs2si, "hij", NaN)
+
+        # Obs2sidiag = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx+1, yy+1], get_op=get_op_Hubbard)
+        # @show Obs2sidiag
+        # Obs2sidiag = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx - 1, yy + 1], get_op=get_op_Hubbard)
+    end
     GC.gc()
-
-    Obsdiag1 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN"], para; site1=[1, 1], site2=[2, 2], get_op=get_op_Hubbard)
-    Obsdiag2 = Cal_Obs_2site(ipeps, ipepsbar, envs, ["hij", "SS", "NN"], para; site1=[1, 2], site2=[2, 1], get_op=get_op_Hubbard)
-    @show Obs1
-    @show Obs2
-    @show Obs3
-    @show Obs4
-    @show Obsdiag1
-    @show Obsdiag2
-    Eg = mean(get(Obs1, "hij", NaN) + get(Obs2, "hij", NaN) + get(Obs3, "hij", NaN) + get(Obs4, "hij", NaN)) * 2
+    Eg = Eg / (Lx * Ly)
     @show Eg
-
-    N11 = Cal_Obs_1site(ipeps, ipepsbar, envs, ["N"], para; site=[1, 1], get_op=get_op_Hubbard)
-    N12 = Cal_Obs_1site(ipeps, ipepsbar, envs, ["N"], para; site=[1, 2], get_op=get_op_Hubbard)
-    N21 = Cal_Obs_1site(ipeps, ipepsbar, envs, ["N"], para; site=[2, 1], get_op=get_op_Hubbard)
-    N22 = Cal_Obs_1site(ipeps, ipepsbar, envs, ["N"], para; site=[2, 2], get_op=get_op_Hubbard)
-    @show N11, N12, N21, N22
-    doping = (get(N11, "N", NaN) + get(N12, "N", NaN) + get(N21, "N", NaN) + get(N22, "N", NaN)) / (Lx * Ly)
+    doping = doping / (Lx * Ly)
     @show doping
 
     return nothing
