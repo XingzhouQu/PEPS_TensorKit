@@ -1,3 +1,9 @@
+function Z(pspace::GradedSpace)
+    Z = isometry(pspace, pspace)
+    block(Z, Irrep[ℤ₂×SU₂](1, 1 // 2)) .= -1
+    return Z
+end
+
 function n(pspace::GradedSpace)
     n = isometry(pspace, pspace)
     block(n, Irrep[ℤ₂×SU₂](0, 0))[1, 1] = 0
@@ -78,17 +84,20 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     U = para[:U]
     μ = para[:μ]
     pspace = para[:pspace]
+    OpZ = Z(pspace)
     Opnd = nd(pspace)
+    Opn = n(pspace)
+    OpI = id(pspace)
     Fdag, F = FdagF(pspace)
+    # @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
     @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
 
     F, Fdag = FFdag(pspace)
+    # @tensor ffdag[p1, p3; p2, p4] := OpZ[p1, p1in] * F[p1in, p2, a] * Fdag[a, p3, p4]
     @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
-
-    Opn = n(pspace)
     # 这里单点项要➗4
-    gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
-    -(μ / 4) * (Opn ⊗ id(pspace) + id(pspace) ⊗ Opn)
+    gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd) -
+           (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
     return [gate]
 end
 

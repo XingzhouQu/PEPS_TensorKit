@@ -1,8 +1,12 @@
 # using MKL
-using TensorKit
+using TensorOperations, TensorKit
 using Statistics
 import TensorKit.×
-# using JLD2
+using JLD2
+using Strided, FLoops
+Strided.enable_threads()
+@show Threads.nthreadpools()
+@show Threads.nthreads()
 
 # 测试正方格子 Hubbard 模型, U₁charge × SU₂spin. 
 
@@ -16,13 +20,13 @@ function main()
     para = Dict{Symbol,Any}()
     para[:t] = 1.0
     para[:U] = 8.0
-    para[:μ] = 5.0
+    para[:μ] = 4.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
-    para[:maxStep1τ] = 100  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 8  # Dkept in the simple udate
-    para[:χ] = 150  # env bond dimension
-    para[:CTMit] = 30  # CTMRG iteration times
+    para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:Dk] = 6  # Dkept in the simple udate
+    para[:χ] = 100  # env bond dimension
+    para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
@@ -61,19 +65,20 @@ function main()
     site1Obs = ["N"]                                # 计算这些单点观测量
     site2Obs = ["hij", "SS", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
     # sites = [[x, y] for x in 1:Lx, y in 1:Ly]
-    Eg = 0.0
-    doping = 0.0
-    for xx in 1:Lx, yy in 1:Ly
+    # @floop 
+    @floop for ind in CartesianIndices((Lx, Ly))
+        (xx, yy) = Tuple(ind)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_Hubbard)
         @show Obs1si
-        doping += get(Obs1si, "N", NaN)
+        @reduce doping += get(Obs1si, "N", NaN)
 
-        Obs2si = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_Hubbard)
-        @show Obs2si
-        Eg += get(Obs2si, "hij", NaN)
-        Obs2si = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx, yy + 1], get_op=get_op_Hubbard)
-        @show Obs2si
-        Eg += get(Obs2si, "hij", NaN)
+        GC.gc()
+        Obs2si_h = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_Hubbard)
+        @show Obs2si_h
+        Obs2si_v = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx, yy + 1], get_op=get_op_Hubbard)
+        @show Obs2si_v
+        @reduce Eg += (get(Obs2si_h, "hij", NaN) + get(Obs2si_v, "hij", NaN))
+        GC.gc()
 
         # Obs2sidiag = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx+1, yy+1], get_op=get_op_Hubbard)
         # @show Obs2sidiag
