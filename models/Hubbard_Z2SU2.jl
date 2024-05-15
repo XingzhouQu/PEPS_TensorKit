@@ -89,14 +89,14 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     Opn = n(pspace)
     OpI = id(pspace)
     Fdag, F = FdagF(pspace)
-    # @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
-    @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
+    @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
+    # @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
 
     F, Fdag = FFdag(pspace)
-    # @tensor ffdag[p1, p3; p2, p4] := OpZ[p1, p1in] * F[p1in, p2, a] * Fdag[a, p3, p4]
-    @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
+    @tensor ffdag[p1, p3; p2, p4] := OpZ[p1, p1in] * F[p1in, p2, a] * Fdag[a, p3, p4]
+    # @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
     # 这里单点项要➗4
-    gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd) -
+    gate = -t * (fdagf - ffdag) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd) -
            (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
     return [gate]
 end

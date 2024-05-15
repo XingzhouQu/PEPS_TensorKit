@@ -47,7 +47,7 @@ function main()
 
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
@@ -58,7 +58,7 @@ function main()
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
     check_qn(ipeps, envs)
 
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
@@ -85,10 +85,10 @@ function main()
         # Obs2sidiag = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx - 1, yy + 1], get_op=get_op_Hubbard)
     end
     GC.gc()
-    Eg = Eg / (Lx * Ly)
-    @show Eg
     doping = doping / (Lx * Ly)
     @show doping
+    Eg = Eg / (Lx * Ly) + doping * para[:μ]
+    @show Eg
 
     return nothing
 end
