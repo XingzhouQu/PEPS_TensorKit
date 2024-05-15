@@ -8,11 +8,11 @@ Strided.enable_threads()
 @show Threads.nthreadpools()
 @show Threads.nthreads()
 
-# 测试正方格子 Hubbard 模型, U₁charge × SU₂spin. 
+# 测试正方格子 Hubbard 模型, U₁charge × U₁spin. 
 
 include("../iPEPS_Fermionic/iPEPS.jl")
 include("../CTMRG_Fermionic/CTMRG.jl")
-include("../models/Hubbard_Z2SU2.jl")
+include("../models/Hubbard_Z2U1.jl")
 include("../simple_update_Fermionic/simple_update.jl")
 include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
@@ -24,17 +24,17 @@ function main()
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
     para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 100  # env bond dimension
+    para[:Dk] = 8  # Dkept in the simple udate
+    para[:χ] = 150  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
-    para[:pspace] = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
+    para[:pspace] = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
 
-    pspace = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
-    aspacelr = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
-    aspacetb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
+    pspace = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
+    aspacelr = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
+    aspacetb = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
     Lx = 2
     Ly = 2
     # # 决定初态每条腿的量子数
@@ -47,7 +47,7 @@ function main()
 
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
-    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
@@ -58,14 +58,13 @@ function main()
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
     check_qn(ipeps, envs)
 
-    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/Hubbard_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
-    site1Obs = ["N"]                                # 计算这些单点观测量
-    site2Obs = ["hij", "SS", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
+    site1Obs = ["N", "Sz"]                                # 计算这些单点观测量
+    site2Obs = ["hij", "SpSm", "NN", "SzSz"]   # 计算这些两点观测量
     # sites = [[x, y] for x in 1:Lx, y in 1:Ly]
-    # @floop 
     @floop for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_Hubbard)
