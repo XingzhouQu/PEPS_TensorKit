@@ -1,4 +1,6 @@
 # using MKL
+using LinearAlgebra
+LinearAlgebra.BLAS.set_num_threads(8)
 using TensorOperations, TensorKit
 using Statistics
 import TensorKit.×
@@ -14,6 +16,7 @@ include("../iPEPS_Fermionic/iPEPS.jl")
 include("../CTMRG_Fermionic/CTMRG.jl")
 include("../models/Hubbard_Z2SU2.jl")
 include("../simple_update_Fermionic/simple_update.jl")
+include("../fast_full_update_Fermionic/fast_full_update.jl")
 include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
 function main()
@@ -22,10 +25,12 @@ function main()
     para[:U] = 8.0
     para[:μ] = 4.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
-    # para[:τlis] = [1.0]
+    para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 12  # Dkept in the simple udate
-    para[:χ] = 250  # env bond dimension
+    para[:maxiterFFU] = 60
+    para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
+    para[:Dk] = 14  # Dkept in the simple udate
+    para[:χ] = 300  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
@@ -35,8 +40,8 @@ function main()
     pspace = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
     aspacelr = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
     aspacetb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
-    Lx = 2
-    Ly = 2
+    Lx = 4
+    Ly = 4
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
     # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -45,20 +50,24 @@ function main()
     # # TODO: 合理选择每条腿的量子数，达到固定的掺杂
     # ipepsγλ = iPEPSΓΛ(pspace, aspacel, aspacet, aspacer, aspaceb, Lx, Ly; dtype=Float64)
 
+    # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
     save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
-    # 转换为正常形式, 做 CTMRG 求环境
+    # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
     @show space(ipeps[1, 1])
     ipepsbar = bar(ipeps)
     envs = iPEPSenv(ipeps)
-    check_qn(ipeps, envs)
-    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
-    check_qn(ipeps, envs)
+    # check_qn(ipeps, envs)
+    # CTMRG!(ipeps, ipepsbar, envs, para[:χ], 2)
+    # fast_full_update!(ipeps, envs, Hubbard_hij, para)
+    # check_qn(ipeps, envs)
 
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # 最后再做CTMRG
+    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
+    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")

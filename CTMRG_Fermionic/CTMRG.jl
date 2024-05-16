@@ -6,8 +6,8 @@ include("./apply_proj.jl")
     CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
     CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
 
-Perform CTMRG `Nit`-iterations with environment dimension `χ`.
-The Fermionic version also requires input of ipepsbar for efficiency.
+Perform CTMRG `Nit`-iterations with environment dimension `χ`. \n
+The Fermionic version also requires input of `ipepsbar` for efficiency.
 """
 function CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
     Lx = ipeps.Lx

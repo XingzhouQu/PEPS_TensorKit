@@ -18,7 +18,7 @@ function get_Efull_fix_gauge(X::TensorMap, Y::TensorMap, envs::iPEPSenv, site1::
             Y[ErDup, tupDin, rupDin, bupDin] * Y'[tdnDin, rdnDin, bdnDin, ErDdn] *
             envs[x2, y2].transfer.r[rupDin, rdnDin, bχin, bχinin] * envs[x2, y2].corner.rb[lχinin, bχinin] *
             envs[x2, y2].transfer.b[lχb, bupDin, bdnDin, lχinin]
-        @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] := Ql[rχt, ElDup; ElDdn, rχb] * Qr[rχt, ErDup, ErDdn, rχb]
+        @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] := Ql[rχt, ElDup; ElDdn, rχb] * Qr[rχt, ErDup; ErDdn, rχb]
         Efull, L, R, Linv, Rinv = fix_local_gauge!(Efull)
         return Efull, L, R, Linv, Rinv
     elseif y2 == y1 + 1

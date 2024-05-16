@@ -125,7 +125,7 @@ function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Θ[toΓ1, pu; t2, pmid, r2, pd, toΓ3] :=
         v1[toΓ1, puin, re1] * ipeps[xx, yy].r[re1, r1] * ipeps[xx+1, yy].Γ[r1, te2, pmid, re2, be2] *
         ipeps[xx+1, yy].t[t2, te2] * ipeps[xx+1, yy].r[re2, r2] * ipeps[xx+1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
-    # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
+    # 分出 [xx, yy] 点的 v1，并做截断和归一.
     v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
@@ -198,7 +198,7 @@ function bond_proj_lu2rd_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Θ[toΓ1, pu; l2, pmid, b2, pd, toΓ3] :=
         v1[toΓ1, puin, be1] * ipeps[xx, yy].b[be1, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] *
         ipeps[xx, yy+1].l[l2, le2] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[r2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
-    # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
+    # 分出 [xx, yy] 点的 v1，并做截断和归一.
     v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1

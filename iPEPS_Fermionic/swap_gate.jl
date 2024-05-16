@@ -57,6 +57,6 @@ function isoddParity(f::FusionTree, reptype::T) where {T<:Union{Type{U1Irrep},Ty
 end
 
 # 仅有电荷对称性时候, rep没有索引method, 为了和多种对称性需要索引的情况保持一致，加一个trivial 的索引方法.
-function getindex(rep::T, ind::Int) where {T<:Union{Type{U1Irrep},Type{Z2Irrep},Type{SU2Irrep}}}
+function getindex(rep::T, ind::Int) where {T<:Union{U1Irrep,Z2Irrep,SU2Irrep}}
     return rep
 end

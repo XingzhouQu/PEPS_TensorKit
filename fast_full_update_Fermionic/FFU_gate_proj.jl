@@ -5,43 +5,43 @@ return the full environment of bond tensor at site1 and site2.
 `X` is the left (top) isometry while `Y` is the right (bottom) isometry.
 """
 function get_Efull_fix_gauge(X::TensorMap, Xbar::TensorMap, Y::TensorMap, Ybar::TensorMap, envs::iPEPSenv, site1::Vector{Int}, site2::Vector{Int})
-    # space(X) = [l, t, b; toV],  space(Y) = [toW; t, r, b]
+    # space(X) = [l, t, b; toV],  space(Y) = [toW; t, r, b];  space(Xbar) = [toV; l, t, b],  space(Ybar) = [t, r, b; toW]
     x1, y1 = site1
     x2, y2 = site2
     if x2 == x1 + 1
-        gatel1 = swap_gate(space(X)[1], space(Xbar)[2]; Eltype=eltype(X))
-        gatel2 = swap_gate(space(X)[3], space(Xbar)[4]; Eltype=eltype(X))
-        gater1 = swap_gate(space(Y)[1], space(Ybar)[2]; Eltype=eltype(X))
-        gater2 = swap_gate(space(Y)[4], space(Ybar)[3]; Eltype=eltype(X))
+        gatel1 = swap_gate(space(X)[1], space(Xbar)[3]; Eltype=eltype(X))
+        gatel2 = swap_gate(space(X)[3], space(Xbar)[1]; Eltype=eltype(X))
+        gater1 = swap_gate(space(Y)[1], space(Ybar)[1]; Eltype=eltype(X))
+        gater2 = swap_gate(space(Y)[4], space(Ybar)[2]; Eltype=eltype(X))
         @tensor Ql[rχt, ElDup; ElDdn, rχb] :=
             envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχt, tupDin, tdnDin] *
             envs[x1, y1].transfer.l[bχin, bχinin, lupDin, ldnDin] * gatel1[lupDin, tdnDin, lupDin2, tdnDin2] *
-            X[lupDin2, tupDin, bupDin2, ElDup] * Xbar[ldnDin, tdnDin2, bdnDin, ElDdnin] *
+            X[lupDin2, tupDin, bupDin2, ElDup] * Xbar[ElDdnin, ldnDin, tdnDin2, bdnDin] *
             gatel2[bupDin, ElDdn, bupDin2, ElDdnin] * envs[x1, y1].corner.lb[bχinin, rχinin] *
             envs[x1, y1].transfer.b[rχinin, bupDin, bdnDin, rχb]
         @tensor Qr[lχt, ErDup; ErDdn, lχb] :=
             envs[x2, y2].corner.rt[lχin, bχin] * envs[x2, y2].transfer.t[lχt, lχin, tupDin, tdnDin] *
             envs[x2, y2].transfer.r[rupDin, rdnDin, bχin, bχinin] * Y[ErDupin, tupDin, rupDin, bupDin2] *
             gater1[ErDup, tdnDin, ErDupin, tdnDin2] * gater2[bupDin, rdnDin, bupDin2, rdnDin2] *
-            Ybar[ErDdn, tdnDin2, rdnDin2, bdnDin] * envs[x2, y2].corner.rb[lχinin, bχinin] *
+            Ybar[tdnDin2, rdnDin2, bdnDin, ErDdn] * envs[x2, y2].corner.rb[lχinin, bχinin] *
             envs[x2, y2].transfer.b[lχb, bupDin, bdnDin, lχinin]
-        @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] := Ql[rχt, ElDup; ElDdn, rχb] * Qr[rχt, ErDup, ErDdn, rχb]
+        @tensor Efull[ElDup, ErDup; ElDdn, ErDdn] := Ql[rχt, ElDup; ElDdn, rχb] * Qr[rχt, ErDup; ErDdn, rχb]
         Efull, L, R, Linv, Rinv = fix_local_gauge!(Efull)
         return Efull, L, R, Linv, Rinv
     elseif y2 == y1 + 1
-        gatet1 = swap_gate(space(X)[1], space(Xbar)[2]; Eltype=eltype(X))
-        gatet2 = swap_gate(space(X)[3], space(Xbar)[4]; Eltype=eltype(X))
-        gateb1 = swap_gate(space(Y)[1], space(Ybar)[2]; Eltype=eltype(X))
-        gateb2 = swap_gate(space(Y)[4], space(Ybar)[3]; Eltype=eltype(X))
+        gatet1 = swap_gate(space(X)[1], space(Xbar)[3]; Eltype=eltype(X))
+        gatet2 = swap_gate(space(X)[3], space(Xbar)[1]; Eltype=eltype(X))
+        gateb1 = swap_gate(space(Y)[1], space(Ybar)[1]; Eltype=eltype(X))
+        gateb2 = swap_gate(space(Y)[4], space(Ybar)[2]; Eltype=eltype(X))
         @tensor Qt[bχl, EtDup; EtDdn, bχr] :=
             envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχinin, tupDin, tdnDin] *
             envs[x1, y1].transfer.l[bχin, bχl, lupDin, ldnDin] * gatet1[lupDin, tdnDin, lupDin2, tdnDin2] *
-            X[lupDin2, tupDin, rupDin2, EtDup] * Xbar[ldnDin, tdnDin2, rdnDin, EtDdnin] *
+            X[lupDin2, tupDin, rupDin2, EtDup] * Xbar[EtDdnin, ldnDin, tdnDin2, rdnDin] *
             gatet2[rupDin, EtDdn, rupDin2, EtDdnin] * envs[x1, y1].corner.rt[rχinin, bχinin] *
             envs[x1, y1].transfer.r[rupDin, rdnDin, bχinin, bχr]
         @tensor Qb[tχl, EbDup; EbDdn, tχr] :=
             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.b[rχin, bupDin, bdnDin, rχinin] *
-            envs[x2, y2].transfer.l[tχl, tχin, lupDin, ldnDin] * Ybar[EbDdn, ldnDin2, rdnDin2, bdnDin] *
+            envs[x2, y2].transfer.l[tχl, tχin, lupDin, ldnDin] * Ybar[ldnDin2, rdnDin2, bdnDin, EbDdn] *
             gateb1[EbDup, ldnDin, EbDupin, ldnDin2] * gateb2[bupDin, rdnDin, bupDin2, rdnDin2] *
             Y[EbDupin, lupDin, rupDin, bupDin2] * envs[x2, y2].corner.rb[rχinin, tχinin] *
             envs[x2, y2].transfer.r[rupDin, rdnDin, tχr, tχinin]
@@ -79,6 +79,7 @@ end
     (See: SciPost Phys. Lect.Notes 25(2021) & PRB 92,035142(2015))
 """
 function FFU_update_bond_lr(Ebarfull::T4, L::T2, R::T2, vl::T3v, wr::T3w, gateNN::T4, Dk::Int; tol, maxiter, verbose) where {T2,T3v,T3w,T4<:AbstractTensorMap}
+    # vl: [ElDup, p, mid]  vlbar: [p, mid, ElDdn]
     cost = NaN
     it = 0
     d0 = dold = zero(scalartype(vl))
@@ -210,13 +211,19 @@ function bond_proj_lr!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, 
     # 计入第一个交换门, 把物理指标换过来
     swgate1 = swap_gate(space(ipeps[xx, yy])[3], space(ipeps[xx, yy])[5]; Eltype=eltype(ipeps[xx, yy]))
     @tensor Γl[l, t, p; r, b] := ipeps[xx, yy][l, t, pin, r, bin] * swgate1[p, b, pin, bin]
-    Γlbar = bar(ipeps[xx, yy])
+    # Γlbar = bar(ipeps[xx, yy])
     Γrbar = bar(ipeps[xx+1, yy])
-    # 两次QR
+    # 两次QR. Tricky! 注意这里的 Xlbar，Yrbar 开放指标流向 与 Xl, Yr 刚好相反
     Xl, vl = leftorth(Γl, ((1, 2, 5), (3, 4)))
-    Xlbar, _ = leftorth(Γlbar, ((1, 2, 5), (3, 4)))
+    # vlbar, Xlbar = rightorth(Γlbar, ((3, 4), (1, 2, 5)))  # 错误: Xlbar, _ = leftorth(Γlbar, ((1, 2, 5), (3, 4)))
+    Xlbar = begin
+        swgt1 = swap_gate(space(Xl')[4], space(Xl')[2]; Eltype=eltype(Xl))
+        swgt2 = swap_gate(space(Xl')[3], space(Xl')[1]; Eltype=eltype(Xl))
+        @tensor temp[(toV,); (l, t, b)] := Xl'[toVin, lin, tin, bin] * swgt1[b, l, bin, lin] * swgt2[t, toV, tin, toVin]
+        temp
+    end
     wr, Yr = rightorth(ipeps[xx+1, yy], ((1, 3), (2, 4, 5)))
-    _, Yrbar = rightorth(Γrbar, ((1, 3), (2, 4, 5)))
+    Yrbar, _ = leftorth(Γrbar, ((2, 4, 5), (1, 3)))  # 错误: # _, Yrbar = rightorth(Γrbar, ((1, 3), (2, 4, 5)))
     # 求局域的环境
     Ebarfull, L, R, Linv, Rinv = get_Efull_fix_gauge(Xl, Xlbar, Yr, Yrbar, envs, [xx, yy], [xx + 1, yy])
     # 迭代更新这个bond
@@ -243,12 +250,18 @@ function bond_proj_tb!(ipeps::iPEPS, envs::iPEPSenv, xx::Int, yy::Int, Dk::Int, 
     swgate1 = swap_gate(space(ipeps[xx, yy+1])[3], space(ipeps[xx, yy+1])[1]; Eltype=eltype(ipeps[xx, yy+1]))
     @tensor Γb[l, t, p; r, b] := ipeps[xx, yy+1][lin, t, pin, r, b] * swgate1[p, l, pin, lin]
     Γtbar = bar(ipeps[xx, yy])
-    Γbbar = bar(ipeps[xx, yy+1])
-    # 两次QR
+    # Γbbar = bar(ipeps[xx, yy+1])
+    # 两次QR  Tricky! 注意这里的 Xtbar，Ybbar 开放指标流向 与 Xt, Yb 刚好相反
     Xt, vt = leftorth(ipeps[xx, yy], ((1, 2, 4), (3, 5)))
-    Xtbar, _ = leftorth(Γtbar, ((1, 2, 4), (3, 5)))
+    _, Xtbar = rightorth(Γtbar, ((3, 5), (1, 2, 4)))  # 错误: Xtbar, _ = leftorth(Γtbar, ((1, 2, 4), (3, 5)))
     wb, Yb = rightorth(Γb, ((2, 3), (1, 4, 5)))
-    _, Ybbar = rightorth(Γbbar, ((2, 3), (1, 4, 5)))
+    # Ybbar, _ = leftorth(Γbbar, ((1, 4, 5), (2, 3)))  # 错误: _, Ybbar = rightorth(Γbbar, ((2, 3), (1, 4, 5)))
+    Ybbar = begin
+        swgt1 = swap_gate(space(Yb')[4], space(Yb')[1]; Eltype=eltype(Yb))
+        swgt2 = swap_gate(space(Yb')[3], space(Yb')[2]; Eltype=eltype(Yb))
+        @tensor temp[l, r, b; toW] := Yb'[lin, rin, bin, toWin] * swgt1[toW, l, toWin, lin] * swgt2[b, r, bin, rin]
+        temp
+    end
     # 求环境
     Ebarfull, T, B, Tinv, Binv = get_Efull_fix_gauge(Xt, Xtbar, Yb, Ybbar, envs, [xx, yy], [xx, yy + 1])
     # 迭代更新这个bond
