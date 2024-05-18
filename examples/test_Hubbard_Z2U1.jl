@@ -1,4 +1,6 @@
-# using MKL
+using MKL
+using LinearAlgebra
+LinearAlgebra.BLAS.set_num_threads(4)
 using TensorOperations, TensorKit
 using Statistics
 import TensorKit.×
@@ -8,7 +10,7 @@ Strided.enable_threads()
 @show Threads.nthreadpools()
 @show Threads.nthreads()
 
-# 测试正方格子 Hubbard 模型, U₁charge × U₁spin. 
+# 测试正方格子 Hubbard 模型, Z₂charge × U₁spin. 
 
 include("../iPEPS_Fermionic/iPEPS.jl")
 include("../CTMRG_Fermionic/CTMRG.jl")
@@ -27,7 +29,7 @@ function main()
     para[:Dk] = 8  # Dkept in the simple udate
     para[:χ] = 150  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
+    para[:Etol] = 0.000001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
     para[:NNNmethod] = :bond
     para[:pspace] = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
@@ -47,7 +49,7 @@ function main()
 
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 CTMRG 求环境
     ipeps = iPEPS(ipepsγλ)
@@ -58,7 +60,7 @@ function main()
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
     check_qn(ipeps, envs)
 
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2U1_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
