@@ -116,8 +116,14 @@ end
 
 function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNNN::TensorMap)
     # 1 site update 方法
-    @tensor Γ1[l1, t1, pu; r1, b1] := ipeps[xx, yy].Γ[le1, te1, pu, r1, be1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx, yy].t[t1, te1] * ipeps[xx, yy].b[be1, b1]
-    @tensor Γ3[l3, t3, pd; r3, b3] := ipeps[xx+1, yy+1].Γ[le3, t3, pd, re3, be3] * ipeps[xx+1, yy+1].l[l3, le3] * ipeps[xx+1, yy+1].r[re3, r3] * ipeps[xx+1, yy+1].b[be3, b3]
+    # 先计入 sitelu, siterd 内部交换门
+    swgt1 = swap_gate(space(ipeps[xx, yy].Γ)[3], space(ipeps[xx, yy].Γ)[5]; Eltype=eltype(ipeps[xx, yy].l))
+    @tensor γ1[l, t, p; r, b] := swgt1[p, b, pin, bin] * ipeps[xx, yy].Γ[l, t, pin, r, bin]
+    @tensor Γ1[l1, t1, pu; r1, b1] := γ1[le1, te1, pu, r1, be1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx, yy].t[t1, te1] * ipeps[xx, yy].b[be1, b1]
+    swgt3 = swap_gate(space(ipeps[xx+1, yy+1].Γ)[3], space(ipeps[xx+1, yy+1].Γ)[1]; Eltype=eltype(ipeps[xx, yy].l))
+    @tensor γ3[l, t, p; r, b] := swgt3[p, l, pin, lin] * ipeps[xx+1, yy+1].Γ[lin, t, pin, r, b]
+    @tensor Γ3[l3, t3, pd; r3, b3] := γ3[le3, t3, pd, re3, be3] * ipeps[xx+1, yy+1].l[l3, le3] * ipeps[xx+1, yy+1].r[re3, r3] * ipeps[xx+1, yy+1].b[be3, b3]
+    # TODO: 继续加入交换门，及时销毁临时变量
     # 两次QR
     X1, v1 = leftorth(Γ1, ((1, 2, 5), (3, 4)))
     v3, X3 = rightorth(Γ3, ((2, 3), (1, 4, 5)))

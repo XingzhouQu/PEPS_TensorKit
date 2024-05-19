@@ -30,7 +30,7 @@ function main()
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 14  # Dkept in the simple udate
-    para[:χ] = 300  # env bond dimension
+    para[:χ] = 500  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
@@ -53,7 +53,7 @@ function main()
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
@@ -67,7 +67,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
