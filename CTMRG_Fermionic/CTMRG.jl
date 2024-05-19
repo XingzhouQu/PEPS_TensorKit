@@ -3,40 +3,90 @@ include("./get_proj.jl")
 include("./apply_proj.jl")
 
 """
-    CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
-    CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
+    CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false)
 
-Perform CTMRG `Nit`-iterations with environment dimension `χ`. \n
+Perform CTMRG `Nit`-iterations with environment dimension `χ`. 
+
 The Fermionic version also requires input of `ipepsbar` for efficiency.
 """
-function CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
+function CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false)
+    if parallel
+        _CTMRG_parallel!(ipeps, ipepsbar, envs, χ, Nit)
+    else
+        _CTMRG_seq!(ipeps, ipepsbar, envs, χ, Nit)
+    end
+    return nothing
+end
+
+function _CTMRG_seq!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     it = 1
     while it <= Nit
         println("============ CTMRG iteration $it / $Nit =======================")
         # 这里的顺序可能也对优化结果有影响，可以测试
-        check_qn(ipeps, envs)
         @time "Left env" for xx in 1:Lx
             error_List = update_env_left_2by2!(ipeps, ipepsbar, envs, xx, χ)
             println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
-        # GC.gc()
         @time "Top env" for yy in 1:Ly
             error_List = update_env_top_2by2!(ipeps, ipepsbar, envs, yy, χ)
             println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
-        # GC.gc()
         @time "Right env" for xx in Lx:-1:1
             error_List = update_env_right_2by2!(ipeps, ipepsbar, envs, xx, χ)
             println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
         end
-        # GC.gc()
         @time "Bottom env" for yy in Ly:-1:1
             error_List = update_env_bottom_2by2!(ipeps, ipepsbar, envs, yy, χ)
             println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
-        GC.gc()
+        # GC.gc()
+        println()
+        flush(stdout)
+        it += 1
+    end
+    return nothing
+end
+
+function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
+    Lx = ipeps.Lx
+    Ly = ipeps.Ly
+    it = 1
+    while it <= Nit
+        println("============ CTMRG iteration $it / $Nit =======================")
+        @time "Left-right env" @sync begin
+            l_future = Threads.@spawn begin
+                for xx in 1:Lx
+                    error_List = update_env_left_2by2!(ipeps, ipepsbar, envs, xx, χ)
+                    println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
+                end
+            end
+            r_future = Threads.@spawn begin
+                for xx in Lx:-1:1
+                    error_List = update_env_right_2by2!(ipeps, ipepsbar, envs, xx, χ)
+                    println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
+                end
+            end
+            wait(l_future)
+            wait(r_future)
+        end
+        @time "Top-Bottom env" @sync begin
+            t_future = Threads.@spawn begin
+                for yy in 1:Ly
+                    error_List = update_env_top_2by2!(ipeps, ipepsbar, envs, yy, χ)
+                    println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
+                end
+            end
+            b_future = Threads.@spawn begin
+                for yy in Ly:-1:1
+                    error_List = update_env_bottom_2by2!(ipeps, ipepsbar, envs, yy, χ)
+                    println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
+                end
+            end
+            wait(t_future)
+            wait(b_future)
+        end
         println()
         flush(stdout)
         it += 1

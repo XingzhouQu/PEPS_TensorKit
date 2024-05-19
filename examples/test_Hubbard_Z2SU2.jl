@@ -32,7 +32,8 @@ function main()
     para[:Dk] = 14  # Dkept in the simple udate
     para[:χ] = 500  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:Etol] = 0.00001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
+    para[:CTMparallel] = true  # use parallel CTMRG or not
+    para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
     para[:NNNmethod] = :bond
     para[:pspace] = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
@@ -66,7 +67,7 @@ function main()
     # check_qn(ipeps, envs)
 
     # 最后再做CTMRG
-    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit])
+    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
     save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
