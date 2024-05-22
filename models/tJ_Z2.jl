@@ -2,7 +2,7 @@
 # 需要检查核测试
 
 function Z(pspace::GradedSpace)
-    z = TensorMap(ones, pspace, pspace)
+    z = TensorMap(zeros, pspace, pspace)
     block(z, Irrep[ℤ₂](1))[1, 1] = -1.0
     block(z, Irrep[ℤ₂](1))[2, 2] = -1.0
     return z
@@ -54,7 +54,7 @@ function FdagF₊(pspace::GradedSpace)
     Fdag₊ = TensorMap(zeros, pspace, pspace ⊗ aspace)
     block(Fdag₊, Irrep[ℤ₂](1))[1] = 1.0
     F₊ = TensorMap(zeros, aspace ⊗ pspace, pspace)
-    block(F₊, Irrep[ℤ₂](0))[1] = 1.0
+    block(F₊, Irrep[ℤ₂](1))[1] = 1.0
     return Fdag₊, F₊
 end
 function FdagF₋(pspace::GradedSpace)
@@ -63,7 +63,7 @@ function FdagF₋(pspace::GradedSpace)
     Fdag₋ = TensorMap(zeros, pspace, pspace ⊗ aspace)
     block(Fdag₋, Irrep[ℤ₂](1))[2] = -1.0
     F₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
-    block(F₋, Irrep[ℤ₂](0))[2] = -1.0
+    block(F₋, Irrep[ℤ₂](1))[2] = -1.0
     return Fdag₋, F₋
 end
 function FFdag₊(pspace::GradedSpace)
@@ -108,34 +108,43 @@ end
 function tJ_hij(para::Dict{Symbol,Any})
     t = para[:t]
     tp = para[:tp]  # t' for NNN hopping
-    J = para[:U]
+    J = para[:J]
     Jp = para[:Jp]  # J' for NNN hopping
+    h = para[:h]  # Zeeman field
     μ = para[:μ]
     pspace = para[:pspace]
     OpZ = Z(pspace)
-    Opnd = nd(pspace)
+    OpSz = Sz(pspace)
     Opn = n(pspace)
     OpI = id(pspace)
+
     Fdag₊, F₊ = FdagF₊(pspace)
     @tensor fdagf₊[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₊[p1in, p2, a] * F₊[a, p3, p4]
     Fdag₋, F₋ = FdagF₋(pspace)
     @tensor fdagf₋[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₋[p1in, p2, a] * F₋[a, p3, p4]
-    # @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
 
     F₊, Fdag₊ = FFdag₊(pspace)
     @tensor ffdag₊[p1, p3; p2, p4] := OpZ[p1, p1in] * F₊[p1in, p2, a] * Fdag₊[a, p3, p4]
     F₋, Fdag₋ = FFdag₋(pspace)
     @tensor ffdag₋[p1, p3; p2, p4] := OpZ[p1, p1in] * F₋[p1in, p2, a] * Fdag₋[a, p3, p4]
-    # @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
+
+    SL, SR = S₊₋(pspace)
+    @tensor spsm[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
+    SL, SR = S₋₊(pspace)
+    @tensor smsp[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
+
     # 这里单点项要➗4
-    gate = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd) -
-           (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
-    return [gate]
+    gateNN = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + J * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn) -
+             (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn) - (h / 4) * (OpSz ⊗ OpI + OpI ⊗ OpSz)
+    gateNNN = -tp * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + Jp * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn)
+    return [gateNN]
 end
 
 function get_op_tJ(tag::String, para::Dict{Symbol,Any})
-    if tag == "hij"
+    if tag == "hijNN"
         return tJ_hij(para)[1]
+    elseif tag == "hijNNN"
+        return tJ_hij(para)[2]
     elseif tag == "CdagCup"
         Fdag, F = FdagF₊(para[:pspace])
         OpZ = Z(para[:pspace])

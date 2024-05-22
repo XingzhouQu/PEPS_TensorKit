@@ -68,8 +68,8 @@ function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int
                     println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
                 end
             end
-            wait(l_future)
-            wait(r_future)
+            # wait(l_future)
+            # wait(r_future)
         end
         @time "Top-Bottom env" @sync begin
             t_future = Threads.@spawn begin
@@ -84,8 +84,8 @@ function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int
                     println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
                 end
             end
-            wait(t_future)
-            wait(b_future)
+            # wait(t_future)
+            # wait(b_future)
         end
         println()
         flush(stdout)
