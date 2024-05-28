@@ -301,7 +301,7 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     # 两个bond tensor 与 auxsite 收缩
     @tensor Θ[pd, toΓ3, l2, t2, pmid; pu, toΓ1] :=
         v1[le1, puin, toΓ1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx-1, yy].Γ[le2, te2, pmid, l1, be2] *
-        ipeps[xx-1, yy].l[l2, le2] * ipeps[xx-1, yy].t[t2, te2] * ipeps[xx-1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
+        ipeps[xx-1, yy].l[l2, le2] * ipeps[xx-1, yy].t[t2, te2] * ipeps[xx-1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pd, pu, pdin, puin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
     Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)
@@ -383,10 +383,10 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     X1, v1 = leftorth(Γ1, ((1, 2, 4), (3, 5)))
     X3, v3 = leftorth(Γ3, ((1, 2, 5), (3, 4)))
     # 两个bond tensor 与 auxsite 收缩
-    swgtmid = swap_gate(space(gateNNN)[2], space(v3)[3]; Eltype=eltype(v3))
+    swgtmid = swap_gate(space(gateNNN)[1], space(v3)[3]; Eltype=eltype(v3))
     @tensor Θ[toΓ1, pu; toΓ3, pd, pmid, r2, b2] :=
         v1[toΓ1, puin, b1in] * ipeps[xx, yy].b[b1in, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] * ipeps[xx, yy+1].l[l2, le2] *
-        swgtmid[pd, l2, pdinp, l2in] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[toΓ3, pdin, l2in] * gateNNN[pu, pdinp, puin, pdin]
+        swgtmid[pd, l2, pdinp, l2in] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[toΓ3, pdin, l2in] * gateNNN[pdinp, pu, pdin, puin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
     v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)

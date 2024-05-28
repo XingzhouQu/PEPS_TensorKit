@@ -30,7 +30,9 @@ function simple_update!(ipeps::iPEPSΓΛ, HamFunc::Function, para::Dict{Symbol,A
             println("=========== Step τ=$τ, iteration $it, total iteration $itsum =======")
             println()
             # ======== 提前终止循环的情况 ===========
-            if abs((E - Ebefore) / Ebefore) < para[:Etol] * τ^2
+            if it <= para[:minStep1τ]
+                nothing
+            elseif abs((E - Ebefore) / Ebefore) < para[:Etol] * τ^2
                 Ebefore = E
                 println("!! Energy converge. Reduce imaginary time step")
                 break
@@ -55,7 +57,7 @@ function get_gates(hams::Vector{T}, τ::Number) where {T<:TensorMap}
     gates = Vector{TensorMap}(undef, length(hams))
     gates[1] = exp(-τ * hams[1])
     # 注意次近邻哈密顿量要用两个对角路径求平均，用√gate
-    length(hams) > 1 ? gates[2] = exp(-τ * hams[2] / 2) : nothing
+    length(hams) > 1 ? gates[2] = exp(-τ * 0.5 * hams[2]) : nothing
     return gates
 end
 
@@ -91,7 +93,8 @@ function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap
             verbose > 1 ? println("右下对角更新 [$xx, $yy], error=$(errlis[Nb])") : nothing
             prodNrm *= (nrmup1 * nrmup2 * nrmdn1 * nrmdn2)^2  # 次近邻是演化两次 τ/2, 因此这里要平方
             Nb += 1
-
+        end
+        for yy in 1:Ly, xx in 1:Lx
             errup1, errup2, errdn1, errdn2, nrmup1, nrmup2, nrmdn1, nrmdn2 = diag_proj_ru2ld!(ipeps, xx, yy, Dk, gates[2]; NNN=NNN)
             errlis[Nb] = maximum([errup1, errup2, errdn1, errdn2])
             verbose > 1 ? println("左下对角更新 [$xx, $yy], error=$(errlis[Nb])") : nothing

@@ -3,6 +3,7 @@
 
 function Z(pspace::GradedSpace)
     z = TensorMap(zeros, pspace, pspace)
+    block(z, Irrep[ℤ₂](0)) .= 1.0
     block(z, Irrep[ℤ₂](1))[1, 1] = -1.0
     block(z, Irrep[ℤ₂](1))[2, 2] = -1.0
     return z
@@ -137,7 +138,7 @@ function tJ_hij(para::Dict{Symbol,Any})
     gateNN = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + J * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn) -
              (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn) - (h / 4) * (OpSz ⊗ OpI + OpI ⊗ OpSz)
     gateNNN = -tp * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + Jp * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn)
-    return [gateNN]
+    return [gateNN, gateNNN]
 end
 
 function get_op_tJ(tag::String, para::Dict{Symbol,Any})

@@ -1,4 +1,4 @@
-using MKL
+# using MKL
 using LinearAlgebra
 LinearAlgebra.BLAS.set_num_threads(8)
 using TensorOperations, TensorKit
@@ -21,19 +21,20 @@ include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
 function main()
     para = Dict{Symbol,Any}()
-    para[:t] = 1.0
+    para[:t] = 3.0
     para[:tp] = 0.51
-    para[:J] = 0.4
+    para[:J] = 1.0
     para[:Jp] = 0.0289
-    para[:h] = 0.0
-    para[:μ] = -1.0
+    para[:h] = 0.6
+    para[:μ] = 5.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
+    para[:minStep1τ] = 50   # 对每个虚时步长 τ , 最少投影这么多步
     para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 80  # env bond dimension
+    para[:χ] = 140  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:CTMparallel] = false  # use parallel CTMRG or not. Use with MKL.
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
@@ -44,8 +45,8 @@ function main()
     pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 2
-    Ly = 2
+    Lx = 3
+    Ly = 3
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
     # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -93,9 +94,9 @@ function main()
         @show (xx, yy, Obs2si_v)
         @reduce Eg += (get(Obs2si_h, "hijNN", NaN) + get(Obs2si_v, "hijNN", NaN))
 
-        # Obs2sidiag_lurd = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx + 1, yy + 1], get_op=get_op_tJ)
-        # Obs2sidiag_ruld = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx - 1, yy + 1], get_op=get_op_tJ)
-        # @reduce Eg += (get(Obs2sidiag_lurd, "hijNNN", NaN) + get(Obs2sidiag_ruld, "hijNNN", NaN))
+        Obs2sidiag_lurd = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx + 1, yy + 1], get_op=get_op_tJ)
+        Obs2sidiag_ruld = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx - 1, yy + 1], get_op=get_op_tJ)
+        @reduce Eg += (get(Obs2sidiag_lurd, "hijNNN", NaN) + get(Obs2sidiag_ruld, "hijNNN", NaN))
         GC.gc()
     end
     GC.gc()
