@@ -45,8 +45,8 @@ function main()
     pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 3
-    Ly = 3
+    Lx = 2
+    Ly = 2
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
     # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -58,7 +58,7 @@ function main()
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, tJ_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
@@ -72,7 +72,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")

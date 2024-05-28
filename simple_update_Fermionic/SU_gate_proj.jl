@@ -148,7 +148,9 @@ function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Γ1new[l1, t1, pu; r1, b1] :=
         X1[l1in, t1in, b1inp, toΓ1] * v1new[toΓ1, puin, r1] * swgtlu[pu, b1in, puin, b1inp] *
         inv(ipeps[xx, yy].l)[l1, l1in] * inv(ipeps[xx, yy].t)[t1, t1in] * inv(ipeps[xx, yy].b)[b1in, b1]
-    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2, t2in, pmid, r2in, b2] * inv(ipeps[xx+1, yy].t)[t2, t2in] * inv(ipeps[xx+1, yy].r)[r2in, r2]
+    @tensor Γ2new[l2, t2, pmid; r2, b2] := 
+        Γ2p[l2in, t2in, pmid, r2in, b2] * inv(ipeps[xx+1, yy].t)[t2, t2in] * inv(ipeps[xx+1, yy].r)[r2in, r2] * 
+        inv(λ1p)[l2, l2in]
     @tensor Γ3new[l3, t3, pd; r3, b3] :=
         v3new[t3, pdin, toΓ3] * X3[toΓ3, l3inp, r3in, b3in] * swgtrd[pd, l3in, pdin, l3inp] *
         inv(ipeps[xx+1, yy+1].l)[l3, l3in] * inv(ipeps[xx+1, yy+1].r)[r3in, r3] * inv(ipeps[xx+1, yy+1].b)[b3in, b3]
@@ -233,7 +235,7 @@ function bond_proj_lu2rd_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
     @tensor Γ1new[l1, t1, pu; r1, b1] := X1[l1in, t1in, r1in, toΓ1] * v1new[toΓ1, pu, b1] * inv(ipeps[xx, yy].l)[l1, l1in] * inv(ipeps[xx, yy].t)[t1, t1in] * inv(ipeps[xx, yy].r)[r1in, r1]
-    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2in, t2, pmid, b2in, r2] * inv(ipeps[xx, yy+1].l)[l2, l2in] * inv(ipeps[xx, yy+1].b)[b2in, b2]
+    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2in, t2in, pmid, b2in, r2] * inv(ipeps[xx, yy+1].l)[l2, l2in] * inv(ipeps[xx, yy+1].b)[b2in, b2] * inv(λ1p)[t2, t2in]
     @tensor Γ3new[l3, t3, pd; r3, b3] := v3new[l3, pd, toΓ3] * X3[toΓ3, t3in, r3in, b3in] * inv(ipeps[xx+1, yy+1].t)[t3, t3in] * inv(ipeps[xx+1, yy+1].r)[r3in, r3] * inv(ipeps[xx+1, yy+1].b)[b3in, b3]
     # 更新 tensor
     ipeps[xx, yy].Γ = Γ1new
@@ -302,7 +304,7 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Θ[pd, toΓ3, l2, t2, pmid; pu, toΓ1] :=
         v1[le1, puin, toΓ1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx-1, yy].Γ[le2, te2, pmid, l1, be2] *
         ipeps[xx-1, yy].l[l2, le2] * ipeps[xx-1, yy].t[t2, te2] * ipeps[xx-1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pd, pu, pdin, puin]
-    # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
+    # 分出 [xx, yy] 点的 v1，并做截断和归一.
     Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
@@ -315,7 +317,7 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     swgtld1 = swap_gate(space(v3new)[2], space(X3)[3]; Eltype=eltype(v3new))
     swgtld2 = swap_gate(space(swgtld1)[1], space(X3)[4]; Eltype=eltype(v3new))
     @tensor Γ1new[l1, t1, pu; r1, b1] := v1new[l1, pu, toΓ1] * X1[toΓ1, t1in, r1in, b1in] * inv(ipeps[xx, yy].b)[b1in, b1] * inv(ipeps[xx, yy].t)[t1, t1in] * inv(ipeps[xx, yy].r)[r1in, r1]
-    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2in, t2in, pmid, r2, b2] * inv(ipeps[xx-1, yy].l)[l2, l2in] * inv(ipeps[xx-1, yy].t)[t2, t2in]
+    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2in, t2in, pmid, r2in, b2] * inv(ipeps[xx-1, yy].l)[l2, l2in] * inv(ipeps[xx-1, yy].t)[t2, t2in] * inv(λ1p)[r2in, r2]
     @tensor Γ3new[l3, t3, pd; r3, b3] :=
         v3new[t3, pdin, toΓ3] * swgtld1[pdinp, r3in, pdin, r3inp] * X3[toΓ3, l3in, r3inp, b3inp] * swgtld2[pd, b3in, pdinp, b3inp] *
         inv(ipeps[xx-1, yy+1].l)[l3, l3in] * inv(ipeps[xx-1, yy+1].r)[r3in, r3] * inv(ipeps[xx-1, yy+1].b)[b3in, b3]
@@ -387,7 +389,7 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Θ[toΓ1, pu; toΓ3, pd, pmid, r2, b2] :=
         v1[toΓ1, puin, b1in] * ipeps[xx, yy].b[b1in, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] * ipeps[xx, yy+1].l[l2, le2] *
         swgtmid[pd, l2, pdinp, l2in] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[toΓ3, pdin, l2in] * gateNNN[pdinp, pu, pdin, puin]
-    # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
+    # 分出 [xx, yy] 点的 v1，并做截断和归一.
     v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
@@ -399,7 +401,7 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     # 恢复原来的张量及其指标顺序.
     swgtld = swap_gate(space(v3new)[2], space(X3)[3]; Eltype=eltype(X3))
     @tensor Γ1new[l1, t1, pu; r1, b1] := X1[l1in, t1in, r1in, toΓ1] * v1new[toΓ1, pu, b1] * inv(ipeps[xx, yy].l)[l1, l1in] * inv(ipeps[xx, yy].t)[t1, t1in] * inv(ipeps[xx, yy].r)[r1in, r1]
-    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2, t2, pmid, r2in, b2in] * inv(ipeps[xx, yy+1].r)[r2in, r2] * inv(ipeps[xx, yy+1].b)[b2in, b2]
+    @tensor Γ2new[l2, t2, pmid; r2, b2] := Γ2p[l2, t2in, pmid, r2in, b2in] * inv(ipeps[xx, yy+1].r)[r2in, r2] * inv(ipeps[xx, yy+1].b)[b2in, b2] * inv(λ1p)[t2, t2in]
     @tensor Γ3new[l3, t3, pd; r3, b3] :=
         X3[l3in, t3in, b3inp, toΓ3] * v3new[toΓ3, pdin, r3] * swgtld[pd, b3in, pdin, b3inp] *
         inv(ipeps[xx-1, yy+1].l)[l3, l3in] * inv(ipeps[xx-1, yy+1].t)[t3, t3in] * inv(ipeps[xx-1, yy+1].b)[b3in, b3]
