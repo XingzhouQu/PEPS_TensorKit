@@ -68,8 +68,7 @@ function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int
                     println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
                 end
             end
-            # wait(l_future)
-            # wait(r_future)
+            wait([l_future, r_future])
         end
         @time "Top-Bottom env" @sync begin
             t_future = Threads.@spawn begin
@@ -84,8 +83,7 @@ function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int
                     println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
                 end
             end
-            # wait(t_future)
-            # wait(b_future)
+            wait([t_future, b_future])
         end
         println()
         flush(stdout)
@@ -114,14 +112,14 @@ function update_env_left_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x:
     # 误差列表
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
-    for yy in 1:Ly
+    @floop for yy in 1:Ly
         projup, projdn, ϵ = get_proj_update_left(ipeps, ipepsbar, envs, x, yy, χ)
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    for yy in 1:Ly
+    @floop for yy in 1:Ly
         if yy == 1
             apply_proj_left!(ipeps, ipepsbar, envs, proj_List[Ly, 2], proj_List[yy, 1], x, yy)
             apply_proj_ltCorner_updateL!(envs, proj_List[Ly, 1], x, 1)
@@ -143,7 +141,7 @@ function update_env_right_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x
     # 误差列表
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
-    for yy in 1:Ly
+    @floop for yy in 1:Ly
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`x-1`
         projup, projdn, ϵ = get_proj_update_right(ipeps, ipepsbar, envs, x - 1, yy, χ)
         proj_List[yy, 1] = projup
@@ -151,7 +149,7 @@ function update_env_right_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x
         error_List[yy] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    for yy in 1:Ly
+    @floop for yy in 1:Ly
         if yy == 1
             apply_proj_right!(ipeps, ipepsbar, envs, proj_List[Ly, 2], proj_List[yy, 1], x, yy)
             apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, yy)
@@ -173,14 +171,14 @@ function update_env_top_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, y::
     # 误差列表
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
-    for xx in 1:Lx
+    @floop for xx in 1:Lx
         projleft, projright, ϵ = get_proj_update_top(ipeps, ipepsbar, envs, xx, y, χ)
         proj_List[xx, 1] = projleft
         proj_List[xx, 2] = projright
         error_List[xx] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    for xx in 1:Lx
+    @floop for xx in 1:Lx
         if xx == 1
             apply_proj_top!(ipeps, ipepsbar, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
             apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], xx, y)
@@ -202,7 +200,7 @@ function update_env_bottom_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, 
     # 误差列表
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
-    for xx in 1:Lx
+    @floop for xx in 1:Lx
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`y-1`
         projleft, projright, ϵ = get_proj_update_bottom(ipeps, ipepsbar, envs, xx, y - 1, χ)
         proj_List[xx, 1] = projleft
@@ -210,7 +208,7 @@ function update_env_bottom_2by2!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, 
         error_List[xx] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    for xx in 1:Lx
+    @floop for xx in 1:Lx
         if xx == 1
             apply_proj_bottom!(ipeps, ipepsbar, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
             apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], xx, y)

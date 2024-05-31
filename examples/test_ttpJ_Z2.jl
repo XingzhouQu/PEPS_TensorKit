@@ -1,6 +1,6 @@
-# using MKL
+using MKL
 using LinearAlgebra
-LinearAlgebra.BLAS.set_num_threads(8)
+LinearAlgebra.BLAS.set_num_threads(4)
 using TensorOperations, TensorKit
 using Statistics
 import TensorKit.×
@@ -20,13 +20,15 @@ include("../fast_full_update_Fermionic/fast_full_update.jl")
 include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
 function main()
+    # ipepsγλ, para_not = load("/home/tcmp2/JuliaProjects/tJZ2_Lx4Ly4_t3.0t'0.51J1.0J'0.0289h0.6mu5.5_ipeps_D8.jld2", "ipeps", "para")
+
     para = Dict{Symbol,Any}()
     para[:t] = 3.0
     para[:tp] = 0.51
     para[:J] = 1.0
     para[:Jp] = 0.0289
     para[:h] = 0.6
-    para[:μ] = 5.0
+    para[:μ] = 5.5
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 50   # 对每个虚时步长 τ , 最少投影这么多步
@@ -58,7 +60,7 @@ function main()
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, tJ_hij, para)
-    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
@@ -72,7 +74,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
-    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
