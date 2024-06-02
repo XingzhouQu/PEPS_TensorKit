@@ -84,26 +84,30 @@ function FFdag₋(pspace::GradedSpace)
     return F₋, Fdag₋
 end
 
-# singlet paring operator
-# function Δₛ(pspace::GradedSpace)
-#     A = FdagF(pspace)[1]
-#     aspace = Rep[ℤ₂×SU₂]((1, 1 // 2) => 1)
-#     iso = isometry(aspace, flip(aspace)) / sqrt(2)
-#     @tensor B[d a; b] := A[a b c] * iso[c d]
-#     C = permute(B', ((1,), (3, 2)))
-#     D = permute(A', ((2, 1), (3,)))
+# singlet paring operator Δₛ = (c↑c↓ - c↓c↑)/√2
+function Δₛ(pspace::GradedSpace)
+    OpZ = Z(pspace)
+    A = FFdag₊(pspace)[1]
+    B = FdagF₋(pspace)[2]
+    C = FFdag₋(pspace)[1]
+    D = FdagF₊(pspace)[2]
+    @tensor updn[p1, p3; p2, p4] := OpZ[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
+    @tensor dnup[p1, p3; p2, p4] := OpZ[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
 
-#     return C, D
-# end
+    return (updn - dnup) / sqrt(2)
+end
+# singlet paring operator Δₛdag = (c↓dag c↑dag - c↑dag c↓dag)/√2
+function Δₛdag(pspace::GradedSpace)
+    OpZ = Z(pspace)
+    A = FdagF₋(pspace)[1]
+    B = FFdag₊(pspace)[2]
+    C = FdagF₊(pspace)[1]
+    D = FFdag₋(pspace)[2]
+    @tensor dnup[p1, p3; p2, p4] := OpZ[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
+    @tensor updn[p1, p3; p2, p4] := OpZ[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
 
-# function Δₛdag(pspace::GradedSpace)
-#     A = FdagF(pspace)[1]
-#     aspace = Rep[ℤ₂×SU₂]((1, 1 // 2) => 1)
-#     iso = isometry(aspace, flip(aspace)) / sqrt(2)
-#     @tensor B[d a; b] := A[a b c] * iso[c d]
-
-#     return A, B
-# end
+    return (dnup - updn) / sqrt(2)
+end
 
 
 function tJ_hij(para::Dict{Symbol,Any})
@@ -173,13 +177,9 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
     elseif tag == "N"
         return n(para[:pspace])
     elseif tag == "Δₛ"
-        # C, D = Δₛ(para[:pspace])
-        # @tensor deltas[p1, p3; p2, p4] := C[p1, p2, a] * D[a, p3, p4]
-        # return deltas
+        return Δₛ(para[:pspace])
     elseif tag == "Δₛdag"
-        # A, B = Δₛdag(para[:pspace])
-        # @tensor deltasdag[p1, p3; p2, p4] := A[p1, p2, a] * B[a, p3, p4]
-        # return deltasdag
+        return Δₛdag(para[:pspace])
     else
         error("Unsupported tag $tag. Check input tag or add this operator.")
     end

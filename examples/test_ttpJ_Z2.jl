@@ -28,7 +28,7 @@ function main()
     para[:J] = 1.0
     para[:Jp] = 0.0289
     para[:h] = 0.6
-    para[:μ] = 5.5
+    para[:μ] = 5.2  # set μ = 5.2,  n = 0.89986
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 50   # 对每个虚时步长 τ , 最少投影这么多步
@@ -36,7 +36,7 @@ function main()
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 140  # env bond dimension
+    para[:χ] = 200  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:CTMparallel] = false  # use parallel CTMRG or not. Use with MKL.
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
@@ -47,8 +47,8 @@ function main()
     pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 2
-    Ly = 2
+    Lx = 4
+    Ly = 4
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
     # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -79,10 +79,8 @@ function main()
     # 计算观测量
     println("============== Calculating Obs ====================")
     site1Obs = ["N", "Sz"]             # 计算这些单点观测量
-    site2Obs = ["hijNN", "SpSm", "SzSz", "NN"]   # 计算这些两点观测量
+    site2Obs = ["hijNN", "SpSm", "SzSz", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
     site2Obsdiag = ["hijNNN", "SpSm", "SzSz", "NN"]
-    # sites = [[x, y] for x in 1:Lx, y in 1:Ly]
-    # @floop 
     @floop for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_tJ)
