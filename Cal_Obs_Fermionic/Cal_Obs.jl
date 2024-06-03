@@ -201,10 +201,10 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         @tensor opt = true QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
             envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * gatelb1[rupDin, tdnD, rupDin2, tdnDin2] *
-            M2bar[rdnDin, tdnDin2, pup3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pdn3in, rupDin3, tupDin2] *
-            gatelb4[pdn3in2, tupDin3, pdn3in, tupDin2] * gatelb2[rupDin4, pdn3, rupDin3, pdn3in2] *
-            gatelb6[rdnD, tupDin, rdnDin2, tupDin4] * gatelb5[pup3in2, tupDin4, pup3in, tupDin3] *
-            gatelb3[rupD, pup3, rupDin4, pup3in2]
+            M2bar[rdnDin, tdnDin2, pdn3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pup3in, rupDin3, tupDin2] *
+            gatelb4[pup3in2, tupDin3, pup3in, tupDin2] * gatelb2[rupDin4, pup3, rupDin3, pup3in2] *
+            gatelb6[rdnD, tupDin, rdnDin2, tupDin4] * gatelb5[pdn3in2, tupDin4, pdn3in, tupDin3] *
+            gatelb3[rupD, pdn3, rupDin4, pdn3in2]
         @tensor ψ□ψ[pup2, pup3; pdn2, pdn3] :=
             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
