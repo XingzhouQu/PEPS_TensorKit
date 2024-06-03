@@ -30,7 +30,7 @@ function mainiPEPS(para)
     println("============== Simple update ====================")
     simple_update!(ipepsγλ, tJ_hij, para)
     if para[:saveiPEPS]
-        save(ipepsγλ, para,  joinpath(para[:iPEPSDir], "ipeps_D$(para[:Dk]).jld2"))
+        save(ipepsγλ, para, joinpath(para[:iPEPSDir], "ipeps_D$(para[:Dk]).jld2"))
     else
         println("Do not save iPEPS (ΓΛ form)")
     end
@@ -49,7 +49,7 @@ function mainiPEPS(para)
     println("============== CTMRG ====================")
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
     if para[:saveEnv]
-        save(ipeps, envs, para,  joinpath(para[:iPEPSDir], "ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2"))
+        save(ipeps, envs, para, joinpath(para[:iPEPSDir], "ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2"))
     else
         println("Do not save iPEPS Env")
     end
@@ -61,11 +61,11 @@ function mainiPEPS(para)
     site2Obs = ["hijNN", "SpSm", "SzSz", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
     site2Obsdiag = ["hijNNN", "SpSm", "SzSz", "NN"]
 
-    rslt1s = Vector{Dict}(undef, Lx*Ly)
-    rslt2s_h = Vector{Dict}(undef, Lx*Ly)
-    rslt2s_v = Vector{Dict}(undef, Lx*Ly)
-    rslt2s_lu2rd = Vector{Dict}(undef, Lx*Ly)
-    rslt2s_ru2ld = Vector{Dict}(undef, Lx*Ly)
+    rslt1s = Vector{Dict}(undef, Lx * Ly)
+    rslt2s_h = Vector{Dict}(undef, Lx * Ly)
+    rslt2s_v = Vector{Dict}(undef, Lx * Ly)
+    rslt2s_lu2rd = Vector{Dict}(undef, Lx * Ly)
+    rslt2s_ru2ld = Vector{Dict}(undef, Lx * Ly)
     # rslt = Dict(Gates[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
     @floop for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
         (xx, yy) = Tuple(val)
@@ -100,44 +100,54 @@ function mainiPEPS(para)
     # =================== save Obs to file ================================
     Obsname = joinpath(para[:RsltFldr], "Obs.h5")
     f = h5open(Obsname, "w")
-    for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
-        (xx, yy) = Tuple(val)
+    T = eltype(ipeps[1, 1])
+    try
         for obs in site1Obs  # eg: obs == "N"
-            tmp = Matrix{Number}(undef, Lx*Ly, 3)
-            for Obs1si in rslt1s  # Obs1si is a Dict. 记录在某个site的所有单点观测量值
-                tmp[ind, 1], tmp[ind, 2] = xx, yy
-                tmp[ind, 3] = get(Obs1si, obs, NaN)
+            tmp = Matrix{T}(undef, Lx * Ly, 3)  # 注意！！这里必须是默认数据类型才能存进去. 如涉及虚数观测量, 坐标会存虚数.
+            for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
+                (xx, yy) = Tuple(val)
+                for Obs1si in rslt1s  # Obs1si is a Dict. 记录在某个site的所有单点观测量值
+                    tmp[ind, 1], tmp[ind, 2] = xx, yy
+                    tmp[ind, 3] = get(Obs1si, obs, NaN)
+                end
             end
             write(f, obs, sortslices(tmp, dims=1))
         end
         for obs in site2Obs  # eg: obs == "NN"
-            tmp_h = Matrix{Number}(undef, Lx*Ly, 5)
-            tmp_v = Matrix{Number}(undef, Lx*Ly, 5)
-            for Obs2si_h in rslt2s_h  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                tmp_h[ind, 1], tmp_h[ind, 2], tmp_h[ind, 3], tmp_h[ind, 4] = xx, yy, xx+1-Int(ceil((xx+1)/Lx)-1)*Lx, yy-Int(ceil(yy/Ly)-1)*Ly
-                tmp_h[ind, 5] = get(Obs2si_h, obs, NaN)
-            end
-            for Obs2si_v in rslt2s_v  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                tmp_v[ind, 1], tmp_v[ind, 2], tmp_v[ind, 3], tmp_v[ind, 4] = xx, yy, xx-Int(ceil(xx/Lx)-1)*Lx, yy+1-Int(ceil((yy+1)/Ly)-1)*Ly
-                tmp_v[ind, 5] = get(Obs2si_v, obs, NaN)
+            tmp_h = Matrix{T}(undef, Lx * Ly, 5)
+            tmp_v = Matrix{T}(undef, Lx * Ly, 5)
+            for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
+                (xx, yy) = Tuple(val)
+                for Obs2si_h in rslt2s_h  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
+                    tmp_h[ind, 1], tmp_h[ind, 2], tmp_h[ind, 3], tmp_h[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy - Int(ceil(yy / Ly) - 1) * Ly
+                    tmp_h[ind, 5] = get(Obs2si_h, obs, NaN)
+                end
+                for Obs2si_v in rslt2s_v  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
+                    tmp_v[ind, 1], tmp_v[ind, 2], tmp_v[ind, 3], tmp_v[ind, 4] = xx, yy, xx - Int(ceil(xx / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                    tmp_v[ind, 5] = get(Obs2si_v, obs, NaN)
+                end
             end
             write(f, obs, sortslices(vcat(tmp_h, tmp_v), dims=1))
         end
         for obs in site2Obsdiag  # eg: obs == "NN"
-            tmp_lurd = Matrix{Number}(undef, Lx*Ly, 5)
-            tmp_ruld = Matrix{Number}(undef, Lx*Ly, 5)
-            for Obs2si_lurd in rslt2s_lu2rd  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                tmp_lurd[ind, 1], tmp_lurd[ind, 2], tmp_lurd[ind, 3], tmp_lurd[ind, 4] = xx, yy, xx+1-Int(ceil((xx+1)/Lx)-1)*Lx, yy+1-Int(ceil((yy+1)/Ly)-1)*Ly
-                tmp_lurd[ind, 5] = get(Obs2si_lurd, obs, NaN)
-            end
-            for Obs2si_ruld in rslt2s_ru2ld  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                tmp_ruld[ind, 1], tmp_ruld[ind, 2], tmp_ruld[ind, 3], tmp_ruld[ind, 4] = xx, yy, xx-1-Int(ceil((xx-1)/Lx)-1)*Lx, yy+1-Int(ceil((yy+1)/Ly)-1)*Ly
-                tmp_ruld[ind, 5] = get(Obs2si_ruld, obs, NaN)
+            tmp_lurd = Matrix{T}(undef, Lx * Ly, 5)
+            tmp_ruld = Matrix{T}(undef, Lx * Ly, 5)
+            for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
+                (xx, yy) = Tuple(val)
+                for Obs2si_lurd in rslt2s_lu2rd  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
+                    tmp_lurd[ind, 1], tmp_lurd[ind, 2], tmp_lurd[ind, 3], tmp_lurd[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                    tmp_lurd[ind, 5] = get(Obs2si_lurd, obs, NaN)
+                end
+                for Obs2si_ruld in rslt2s_ru2ld  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
+                    tmp_ruld[ind, 1], tmp_ruld[ind, 2], tmp_ruld[ind, 3], tmp_ruld[ind, 4] = xx, yy, xx - 1 - Int(ceil((xx - 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                    tmp_ruld[ind, 5] = get(Obs2si_ruld, obs, NaN)
+                end
             end
             write(f, string(obs, "diag"), sortslices(vcat(tmp_lurd, tmp_ruld), dims=1))
         end
+    finally
+        close(f)
     end
-    close(f)
     return nothing
 end
 
