@@ -26,13 +26,14 @@ function main()
     para[:μ] = 4.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
+    para[:minStep1τ] = 10  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
-    para[:Dk] = 14  # Dkept in the simple udate
-    para[:χ] = 500  # env bond dimension
+    para[:Dk] = 6  # Dkept in the simple udate
+    para[:χ] = 100  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:CTMparallel] = true  # use parallel CTMRG or not
+    para[:CTMparallel] = false  # use parallel CTMRG or not
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
     para[:NNNmethod] = :bond
@@ -41,8 +42,8 @@ function main()
     pspace = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
     aspacelr = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
     aspacetb = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
-    Lx = 4
-    Ly = 4
+    Lx = 2
+    Ly = 2
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
     # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -54,7 +55,7 @@ function main()
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, Hubbard_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
@@ -68,7 +69,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/HubbardZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])U$(para[:U])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")

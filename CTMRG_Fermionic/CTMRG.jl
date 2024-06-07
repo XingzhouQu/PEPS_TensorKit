@@ -55,24 +55,29 @@ function _CTMRG_parallel!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int
     it = 1
     while it <= Nit
         println("============ CTMRG iteration $it / $Nit =======================")
-        @time "Left-right env" @sync begin
-            lr_future = Threads.@spawn for xx in 1:Lx
-                error_List_l = update_env_left_2by2!(ipeps, ipepsbar, envs, xx, χ)
-                println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List_l))")
-                error_List_r = update_env_right_2by2!(ipeps, ipepsbar, envs, Lx - xx + 1, χ)
-                println("Iteration $it, update right edge (contract column-$(Lx-xx+1)) truncation error $(maximum(error_List_r))")
+        @time "Left-right env" for xx in 1:Lx
+            @floop for lr in 1:2
+                if lr == 1
+                    error_List_l = update_env_left_2by2!(ipeps, ipepsbar, envs, xx, χ)
+                    println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List_l))")
+                else
+                    error_List_r = update_env_right_2by2!(ipeps, ipepsbar, envs, Lx - xx + 1, χ)
+                    println("Iteration $it, update right edge (contract column-$(Lx-xx+1)) truncation error $(maximum(error_List_r))")
+                end
             end
-            # wait(lr_future)
         end
-        @time "Top-Bottom env" @sync begin
-            tb_future = Threads.@spawn for yy in 1:Ly
-                error_List_t = update_env_top_2by2!(ipeps, ipepsbar, envs, yy, χ)
-                println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List_t))")
-                error_List_b = update_env_bottom_2by2!(ipeps, ipepsbar, envs, Ly - yy + 1, χ)
-                println("Iteration $it, update bottom edge (contract row-$(Ly-yy+1)) truncation error $(maximum(error_List_b))")
+        @time "Top-Bottom env" for yy in 1:Ly
+            @floop for tb in 1:2
+                if tb == 1
+                    error_List_t = update_env_top_2by2!(ipeps, ipepsbar, envs, yy, χ)
+                    println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List_t))")
+                else
+                    error_List_b = update_env_bottom_2by2!(ipeps, ipepsbar, envs, Ly - yy + 1, χ)
+                    println("Iteration $it, update bottom edge (contract row-$(Ly-yy+1)) truncation error $(maximum(error_List_b))")
+                end
             end
-            # wait(tb_future)
         end
+        GC.gc()
         println()
         flush(stdout)
         it += 1
