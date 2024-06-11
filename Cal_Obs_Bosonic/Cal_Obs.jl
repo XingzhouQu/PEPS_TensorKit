@@ -40,6 +40,7 @@ function Cal_Obs_2site(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para
     else
         error("Larger distance is not supported yet.")
     end
+    return nothing
 end
 
 
@@ -49,7 +50,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, 
     x1, y1 = site1
     x2, y2 = site2
     if y2 == y1  # 横向的两个点.  顺序：CTTMMbarCTTMMbarCTTC.
-        @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
+        @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] :=
             envs[x1, y1].corner.lt[lt2t1, lt2l] * envs[x1, y1].transfer.l[lt2l, lb2l, l2Dup, l2Ddn] *
             envs[x1, y1].transfer.t[lt2t1, t12t2, t12Dup, t12Ddn] * ipeps[x1, y1][l2Dup, t12Dup, pup1, Dupin, b12Dup] *
             ipeps[x1, y1]'[Ddnin, b12Ddn, l2Ddn, t12Ddn, pdn1] * envs[x1, y1].corner.lb[lb2l, lb2b1] *
@@ -59,7 +60,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String}, 
             envs[x2, y2].transfer.b[b12b2, b22Dup, b22Ddn, rb2b2] * envs[x2, y2].corner.rb[rb2b2, rb2r]
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x2 == x1  # 纵向的两个点
-        @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
+        @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] :=
             envs[x1, y1].corner.lt[lt2t, lt2l1] * envs[x1, y1].transfer.l[lt2l1, l12l2, l12Dup, l12Ddn] *
             envs[x1, y1].transfer.t[lt2t, rt2t, t2Dup, t2Ddn] * ipeps[x1, y1][l12Dup, t2Dup, pup1, r12Dup, Dupin] *
             ipeps[x1, y1]'[r12Ddn, Ddnin, l12Ddn, t2Ddn, pdn1] * envs[x1, y1].corner.rt[rt2t, rt2r1] *
@@ -106,6 +107,8 @@ function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String},
         @tensoropt ψ□ψ[pup1, pup4; pdn1, pdn4] :=
             QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
+        QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
+        GC.gc()
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x1 == (x2 + 1 - Int(ceil((x2 + 1) / Lx) - 1) * Lx)  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
         QuL = get_QuL(ipeps, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
@@ -121,6 +124,8 @@ function _2siteObs_diagSite(ipeps::iPEPS, envs::iPEPSenv, Gates::Vector{String},
         @tensoropt ψ□ψ[pup2, pup3; pdn2, pdn3] :=
             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
+        QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
+        GC.gc()
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     else
         error("check input sites")

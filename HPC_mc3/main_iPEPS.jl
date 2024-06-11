@@ -106,10 +106,8 @@ function mainiPEPS(para)
             tmp = Matrix{T}(undef, Lx * Ly, 3)  # 注意！！这里必须是默认数据类型才能存进去. 如涉及虚数观测量, 坐标会存虚数.
             for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
                 (xx, yy) = Tuple(val)
-                for Obs1si in rslt1s  # Obs1si is a Dict. 记录在某个site的所有单点观测量值
-                    tmp[ind, 1], tmp[ind, 2] = xx, yy
-                    tmp[ind, 3] = get(Obs1si, obs, NaN)
-                end
+                tmp[ind, 1], tmp[ind, 2] = xx, yy
+                tmp[ind, 3] = get(rslt1s[ind], obs, NaN)
             end
             write(f, obs, sortslices(tmp, dims=1))
         end
@@ -118,14 +116,10 @@ function mainiPEPS(para)
             tmp_v = Matrix{T}(undef, Lx * Ly, 5)
             for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
                 (xx, yy) = Tuple(val)
-                for Obs2si_h in rslt2s_h  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                    tmp_h[ind, 1], tmp_h[ind, 2], tmp_h[ind, 3], tmp_h[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy - Int(ceil(yy / Ly) - 1) * Ly
-                    tmp_h[ind, 5] = get(Obs2si_h, obs, NaN)
-                end
-                for Obs2si_v in rslt2s_v  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                    tmp_v[ind, 1], tmp_v[ind, 2], tmp_v[ind, 3], tmp_v[ind, 4] = xx, yy, xx - Int(ceil(xx / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
-                    tmp_v[ind, 5] = get(Obs2si_v, obs, NaN)
-                end
+                tmp_h[ind, 1], tmp_h[ind, 2], tmp_h[ind, 3], tmp_h[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy - Int(ceil(yy / Ly) - 1) * Ly
+                tmp_h[ind, 5] = get(rslt2s_h[ind], obs, NaN)
+                tmp_v[ind, 1], tmp_v[ind, 2], tmp_v[ind, 3], tmp_v[ind, 4] = xx, yy, xx - Int(ceil(xx / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                tmp_v[ind, 5] = get(rslt2s_v[ind], obs, NaN)
             end
             write(f, obs, sortslices(vcat(tmp_h, tmp_v), dims=1))
         end
@@ -134,14 +128,10 @@ function mainiPEPS(para)
             tmp_ruld = Matrix{T}(undef, Lx * Ly, 5)
             for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
                 (xx, yy) = Tuple(val)
-                for Obs2si_lurd in rslt2s_lu2rd  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                    tmp_lurd[ind, 1], tmp_lurd[ind, 2], tmp_lurd[ind, 3], tmp_lurd[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
-                    tmp_lurd[ind, 5] = get(Obs2si_lurd, obs, NaN)
-                end
-                for Obs2si_ruld in rslt2s_ru2ld  # Obs2si is a Dict. 记录在某个site的所有两点观测量值
-                    tmp_ruld[ind, 1], tmp_ruld[ind, 2], tmp_ruld[ind, 3], tmp_ruld[ind, 4] = xx, yy, xx - 1 - Int(ceil((xx - 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
-                    tmp_ruld[ind, 5] = get(Obs2si_ruld, obs, NaN)
-                end
+                tmp_lurd[ind, 1], tmp_lurd[ind, 2], tmp_lurd[ind, 3], tmp_lurd[ind, 4] = xx, yy, xx + 1 - Int(ceil((xx + 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                tmp_lurd[ind, 5] = get(rslt2s_lu2rd[ind], obs, NaN)
+                tmp_ruld[ind, 1], tmp_ruld[ind, 2], tmp_ruld[ind, 3], tmp_ruld[ind, 4] = xx, yy, xx - 1 - Int(ceil((xx - 1) / Lx) - 1) * Lx, yy + 1 - Int(ceil((yy + 1) / Ly) - 1) * Ly
+                tmp_ruld[ind, 5] = get(rslt2s_ru2ld[ind], obs, NaN)
             end
             write(f, string(obs, "diag"), sortslices(vcat(tmp_lurd, tmp_ruld), dims=1))
         end

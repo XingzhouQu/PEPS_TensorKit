@@ -1,23 +1,30 @@
 using MKL
 using LinearAlgebra
+LinearAlgebra.BLAS.set_num_threads(8)
 using TensorOperations, TensorKit
-import TensorKit.×
 using Statistics
+import TensorKit.×
 using JLD2, HDF5
 using Strided, FLoops
+Strided.enable_threads()
+@show Threads.nthreadpools()
+@show Threads.nthreads()
+
 # 测试正方格子 t-t'-J 模型加 Zeeman 场, Z₂charge. 
 
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/iPEPS_Fermionic/iPEPS.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/CTMRG_Fermionic/CTMRG.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/models/tJ_Z2.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/simple_update_Fermionic/simple_update.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/fast_full_update_Fermionic/fast_full_update.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/Cal_Obs_Fermionic/Cal_Obs.jl")
+include("../iPEPS_Fermionic/iPEPS.jl")
+include("../CTMRG_Fermionic/CTMRG.jl")
+include("../models/tJ_Z2.jl")
+include("../simple_update_Fermionic/simple_update.jl")
+include("../fast_full_update_Fermionic/fast_full_update.jl")
+include("../Cal_Obs_Fermionic/Cal_Obs.jl")
 
-function mainObs(para)
-    Lx = para[:Lx]
-    Ly = para[:Ly]
-    ipeps, envs, _ = load(joinpath(para[:iPEPSDir], "ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2"), "ipeps", "envs", "para")
+function main()
+    # ipepsγλ, para_not = load("/home/tcmp2/JuliaProjects/tJZ2_Lx4Ly4_t3.0t'0.51J1.0J'0.0289h0.6mu5.5_ipeps_D8.jld2", "ipeps", "para")
+
+    Lx = 32
+    Ly = 2
+    ipeps, envs, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx32Ly2_SU_t3.0t'0.51J1.0J'0.0289h0.6mu5.2_ipepsEnv_D6chi300.jld2", "ipeps", "envs", "para")
     ipepsbar = bar(ipeps)
     # 计算观测量
     println("============== Calculating Obs ====================")
@@ -30,13 +37,16 @@ function mainObs(para)
     rslt2s_v = Vector{Dict}(undef, Lx * Ly)
     rslt2s_lu2rd = Vector{Dict}(undef, Lx * Ly)
     rslt2s_ru2ld = Vector{Dict}(undef, Lx * Ly)
-    # rslt = Dict(Gates[ind] => (vals[ind] / nrm) for ind in 1:length(vals))
-    @floop for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
+
+    filling = 0.0
+    magnetization = 0.0
+    Eg = 0.0
+    for (ind, val) in enumerate(CartesianIndices((Lx, Ly)))
         (xx, yy) = Tuple(val)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_tJ)
         @show (xx, yy, Obs1si)
-        @reduce filling += get(Obs1si, "N", NaN)
-        @reduce magnetization += abs(get(Obs1si, "Sz", NaN))
+        filling += get(Obs1si, "N", NaN)
+        magnetization += abs(get(Obs1si, "Sz", NaN))
         rslt1s[ind] = Obs1si
 
         Obs2si_h = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_tJ)
@@ -45,14 +55,14 @@ function mainObs(para)
         Obs2si_v = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx, yy + 1], get_op=get_op_tJ)
         @show (xx, yy, Obs2si_v)
         rslt2s_v[ind] = Obs2si_v
-        @reduce Eg += (get(Obs2si_h, "hijNN", NaN) + get(Obs2si_v, "hijNN", NaN))
 
+        Eg += (get(Obs2si_h, "hijNN", NaN) + get(Obs2si_v, "hijNN", NaN))
         Obs2sidiag_lurd = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx + 1, yy + 1], get_op=get_op_tJ)
         rslt2s_lu2rd[ind] = Obs2sidiag_lurd
         Obs2sidiag_ruld = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obsdiag, para; site1=[xx, yy], site2=[xx - 1, yy + 1], get_op=get_op_tJ)
         rslt2s_ru2ld[ind] = Obs2sidiag_ruld
-        @reduce Eg += (get(Obs2sidiag_lurd, "hijNNN", NaN) + get(Obs2sidiag_ruld, "hijNNN", NaN))
-        GC.gc()
+        Eg += (get(Obs2sidiag_lurd, "hijNNN", NaN) + get(Obs2sidiag_ruld, "hijNNN", NaN))
+        flush(stdout)
     end
     filling = filling / (Lx * Ly)
     @show filling
@@ -62,7 +72,7 @@ function mainObs(para)
     @show Eg
 
     # =================== save Obs to file ================================
-    Obsname = joinpath(para[:RsltFldr], "Obs.h5")
+    Obsname = joinpath("/home/tcmp2/JuliaProjects/", "tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])t'$(para[:tp])J$(para[:J])J'$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ])_Obs.h5")
     f = h5open(Obsname, "w")
     T = eltype(ipeps[1, 1])
     try
@@ -102,29 +112,8 @@ function mainObs(para)
     finally
         close(f)
     end
-    return nothing
-end
-
-
-function loadPara_Run(parpath)
-    # Accept the path of para file, read it and run iPEPS
-    @load parpath para
-    #   global para = para
-    for (key, value) in para
-        println("$key => $value")
-    end
-    println()
-
-    # Set the multithreading environment.
-    LinearAlgebra.BLAS.set_num_threads(para[:nthreads])
-    Strided.enable_threads()
-    @show Threads.nthreadpools()
-    @show Threads.nthreads()
-    @show Sys.CPU_THREADS
-    # Run iPEPS
-    mainObs(para)
 
     return nothing
 end
 
-loadPara_Run(ARGS[1])
+main()
