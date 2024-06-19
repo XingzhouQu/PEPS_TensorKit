@@ -1,6 +1,6 @@
 using MKL
 using LinearAlgebra
-LinearAlgebra.BLAS.set_num_threads(8)
+LinearAlgebra.BLAS.set_num_threads(4)
 using TensorOperations, TensorKit
 using Statistics
 import TensorKit.×
