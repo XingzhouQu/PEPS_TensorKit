@@ -2,12 +2,12 @@
 作用投影算符以裁剪环境, 左侧transfer张量.
 """
 function apply_proj_left!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
-    Abar = ipepsbar[x, y]
+    A = ipeps[x, y]::TensorMap
+    Abar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
-    @tensor PTMMP[(tχNew, bχNew); (rupD, rdnD)] :=
+    @tensoropt PTMMP[(tχNew, bχNew); (rupD, rdnD)] :=
         envs[x, y].transfer.l[tχin, bχin, rupDin, rdnDin] * projup[tχNew, tχin, tupDin, tdnDin] *
         gate1[rupDin, tdnDin, rupDin2, tdnDin2] * A[rupDin2, tupDin, p, rupD, upDin2] *
         Abar[rdnDin, tdnDin2, p, rdnDin2, dnDin] * projdn[bχin, upDin, dnDin, bχNew] *
@@ -20,12 +20,12 @@ end
 
 
 function apply_proj_right!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
-    Abar = ipepsbar[x, y]
+    A = ipeps[x, y]::TensorMap
+    Abar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
-    @tensor PTMMP[(lupD, ldnD, tχNew, bχNew); ()] :=
+    @tensoropt PTMMP[(lupD, ldnD, tχNew, bχNew); ()] :=
         envs[x, y].transfer.r[lupDin, ldnDin, tχin, bχin] * projup[tχNew, tχin, tupDin, tdnDin] *
         A[lupDin2, tupDin, p, lupDin, upDin2] * gate1[lupD, tdnDin, lupDin2, tdnDin2] *
         gate2[ldnDin, upDin, ldnDin2, upDin2] * Abar[ldnD, tdnDin2, p, ldnDin2, dnDin] *
@@ -38,12 +38,12 @@ end
 
 
 function apply_proj_top!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
-    Abar = ipepsbar[x, y]
+    A = ipeps[x, y]::TensorMap
+    Abar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
-    @tensor PTMMP[(lχNew, rχNew); (bupD, bdnD)] :=
+    @tensoropt PTMMP[(lχNew, rχNew); (bupD, bdnD)] :=
         envs[x, y].transfer.t[lχin, rχin, bupDin, bdnDin] * projleft[lχin, lupDin, ldnDin, lχNew] *
         gate1[lupDin, bdnDin, lupDin2, bdnDin2] * A[lupDin2, bupDin, p, rupDin, bupDin2] *
         Abar[ldnDin, bdnDin2, p, rdnDin2, bdnD] * gate2[rdnDin, bupD, rdnDin2, bupDin2] *
@@ -56,12 +56,12 @@ end
 
 
 function apply_proj_bottom!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
-    Abar = ipepsbar[x, y]
+    A = ipeps[x, y]::TensorMap
+    Abar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(A)[1], space(Abar)[2]; Eltype=eltype(A))
     gate2 = swap_gate(space(Abar)[4], space(A)[5]; Eltype=eltype(A))
 
-    @tensor PTMMP[(lχNew, tupD, tdnD, rχNew); ()] :=
+    @tensoropt PTMMP[(lχNew, tupD, tdnD, rχNew); ()] :=
         envs[x, y].transfer.b[lχin, tupDin, tdnDin, rχin] * projleft[lχin, lupDin, ldnDin, lχNew] *
         Abar[ldnDin, tdnDin2, p, rdnDin2, tdnDin] * gate1[lupDin, tdnD, lupDin2, tdnDin2] *
         gate2[rdnDin, tupDin, rdnDin2, tupDin2] * A[lupDin2, tupD, p, rupDin, tupDin2] *

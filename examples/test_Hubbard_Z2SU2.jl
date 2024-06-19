@@ -26,8 +26,8 @@ function main()
     para[:μ] = 4.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
-    para[:minStep1τ] = 10  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:minStep1τ] = 10  # 对每个虚时步长 τ , 最少投影这么多步
+    para[:maxStep1τ] = 500  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate

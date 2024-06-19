@@ -3,7 +3,7 @@
 作用投影算符以裁剪环境, 左侧transfer张量.
 """
 function apply_proj_left!(ipeps::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
+    A = ipeps[x, y]::TensorMap
     Abar = A'
 
     @tensor PTMMP[(tχNew, bχNew); (rupD, rdnD)] :=
@@ -18,7 +18,7 @@ end
 
 
 function apply_proj_right!(ipeps::iPEPS, envs::iPEPSenv, projup::TensorMap, projdn::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
+    A = ipeps[x, y]::TensorMap
     Abar = A'
 
     @tensor PTMMP[(lupD, ldnD, tχNew, bχNew); ()] :=
@@ -33,7 +33,7 @@ end
 
 
 function apply_proj_top!(ipeps::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
+    A = ipeps[x, y]::TensorMap
     Abar = A'
 
     @tensor PTMMP[(lχNew, rχNew); (bupD, bdnD)] :=
@@ -48,7 +48,7 @@ end
 
 
 function apply_proj_bottom!(ipeps::iPEPS, envs::iPEPSenv, projleft::TensorMap, projright::TensorMap, x::Int, y::Int)
-    A = ipeps[x, y]
+    A = ipeps[x, y]::TensorMap
     Abar = A'
 
     @tensor PTMMP[(lχNew, tupD, tdnD, rχNew); ()] :=

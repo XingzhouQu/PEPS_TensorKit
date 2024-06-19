@@ -11,8 +11,8 @@ function get_proj_update_left(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::
         QdL[tχL, tupDL, tdnDL, rχin, rupD, rdnD] * QdR[rχin, rupD, rdnD, tχR, tupDR, tdnDR]
 
     # LQ 分解. Q 是正交基  @assert Vudag * Vudag' ≈ id(codomain(Vudag))
-    Ru, Vudag = rightorth(Qu, ((1, 2, 3), (4, 5, 6)))
-    Rd, Vddag = rightorth(Qd, ((1, 2, 3), (4, 5, 6)))
+    Ru, _ = rightorth(Qu, ((1, 2, 3), (4, 5, 6)))
+    Rd, _ = rightorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[χL, upDL, dnDL, t] * Rd[χL, upDL, dnDL, b]
     U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=TensorKit.SVD())  # SVD() is more stable
     S_invHalf = SqrtInv(S)
@@ -38,8 +38,8 @@ function get_proj_update_right(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x:
         QdL[tχL, tupDL, tdnDL, rχin, rupD, rdnD] * QdR[rχin, rupD, rdnD, tχR, tupDR, tdnDR]
 
     # QR 分解. Q 是正交基  @assert Uu' * Uu ≈ id(domain(Uu))
-    Uu, Ru = leftorth(Qu, ((1, 2, 3), (4, 5, 6)))
-    Ud, Rd = leftorth(Qd, ((1, 2, 3), (4, 5, 6)))
+    _, Ru = leftorth(Qu, ((1, 2, 3), (4, 5, 6)))
+    _, Rd = leftorth(Qd, ((1, 2, 3), (4, 5, 6)))
     @tensor Rud[t; b] := Ru[t, χL, upDL, dnDL] * Rd[b, χL, upDL, dnDL]
     U, S, Vdag, ϵ = tsvd(Rud, ((1,), (2,)); trunc=truncdim(χ), alg=TensorKit.SVD())
     S_invHalf = SqrtInv(S)
@@ -66,8 +66,8 @@ function get_proj_update_top(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::I
         QuR[lχt, lupDt, ldnDt, bχin, bupD, bdnD] * QdR[lχb, lupDb, ldnDb, bχin, bupD, bdnD]
 
     # LQ 分解. Q 是正交基  @assert Vldag * Vldag' ≈ id(codomain(Vldag))
-    Rl, Vldag = rightorth(QL, ((1, 2, 3), (4, 5, 6)))
-    Rr, Vrdag = rightorth(QR, ((1, 2, 3), (4, 5, 6)))
+    Rl, _ = rightorth(QL, ((1, 2, 3), (4, 5, 6)))
+    Rr, _ = rightorth(QR, ((1, 2, 3), (4, 5, 6)))
     @tensor Rlr[l; r] := Rl[χ, upD, dnD, l] * Rr[χ, upD, dnD, r]
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=TensorKit.SVD())
     S_invHalf = SqrtInv(S)
@@ -91,8 +91,8 @@ function get_proj_update_bottom(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x
         QuR[lχt, lupDt, ldnDt, bχin, bupD, bdnD] * QdR[lχb, lupDb, ldnDb, bχin, bupD, bdnD]
 
     # QR 分解. Q 是正交基  @assert Ul' * Ul ≈ id(domain(Uu))
-    Ul, Rl = leftorth(QL, ((1, 3, 4), (2, 5, 6)))
-    Ur, Rr = leftorth(QR, ((5, 1, 2), (6, 3, 4)))
+    _, Rl = leftorth(QL, ((1, 3, 4), (2, 5, 6)))
+    _, Rr = leftorth(QR, ((5, 1, 2), (6, 3, 4)))
     @tensor Rlr[l; r] := Rl[l, χ, upDL, dnDL] * Rr[r, χ, upDL, dnDL]
     U, S, Vdag, ϵ = tsvd(Rlr, ((1,), (2,)); trunc=truncdim(χ), alg=TensorKit.SVD())
     S_invHalf = SqrtInv(S)
@@ -105,68 +105,68 @@ function get_proj_update_bottom(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x
 end
 
 
-function get_QuL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QuL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)::TensorMap
     # 左上角半边
-    C = envs[x, y].corner.lt
-    Tt = envs[x, y].transfer.t
-    Tl = envs[x, y].transfer.l
-    M = ipeps[x, y]
-    Mbar = ipepsbar[x, y]
+    C = envs[x, y].corner.lt::TensorMap
+    Tt = envs[x, y].transfer.t::TensorMap
+    Tl = envs[x, y].transfer.l::TensorMap
+    M = ipeps[x, y]::TensorMap
+    Mbar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(Tt)[4], space(Tl)[3]; Eltype=eltype(M))
     gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
-    @tensor CTtTlMMbar[(); (rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
+    @tensoropt CTtTlMMbar[(); (rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
         Tt[rχin, rχ, bupDin, rupDMin1] * C[rχin, bχin] * Tl[bχin, bχ, rupDMin2, rdnD] *
         gate1[rupDin1, rupDin2, rupDMin1, rupDMin2] * M[rupDin2, bupDin, p, rupMD, bupMDin] *
         Mbar[rdnD, rupDin1, p, rdnMDin, bdnMD] * gate2[bupMD, rdnMD, bupMDin, rdnMDin]
     return CTtTlMMbar
 end
 
-function get_QuR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QuR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)::TensorMap
     # 右上角半边
-    C = envs[x, y].corner.rt
-    Tt = envs[x, y].transfer.t
-    Tr = envs[x, y].transfer.r
-    M = ipeps[x, y]
-    Mbar = ipepsbar[x, y]
+    C = envs[x, y].corner.rt::TensorMap
+    Tt = envs[x, y].transfer.t::TensorMap
+    Tr = envs[x, y].transfer.r::TensorMap
+    M = ipeps[x, y]::TensorMap
+    Mbar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
     gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
-    @tensor CTtTrMMbar[lχ, lupD, ldnD; bχ, bupD, bdnD] :=
+    @tensoropt CTtTrMMbar[lχ, lupD, ldnD; bχ, bupD, bdnD] :=
         C[lχin, bχin] * Tt[lχ, lχin, bupDin, bdnDin] * Tr[lupDin, ldnDin, bχin, bχ] *
         M[lupDMin, bupDin, p, lupDin, bupDMin] * gate1[lupD, bdnDin, lupDMin, bdnDMin] *
         gate2[bupD, ldnDin, bupDMin, ldnDMin] * Mbar[ldnD, bdnDMin, p, ldnDMin, bdnD]
     return CTtTrMMbar
 end
 
-function get_QdL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QdL(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)::TensorMap
     # 左下角半边
-    C = envs[x, y].corner.lb
-    Tl = envs[x, y].transfer.l
-    Tb = envs[x, y].transfer.b
-    M = ipeps[x, y]
-    Mbar = ipepsbar[x, y]
+    C = envs[x, y].corner.lb::TensorMap
+    Tl = envs[x, y].transfer.l::TensorMap
+    Tb = envs[x, y].transfer.b::TensorMap
+    M = ipeps[x, y]::TensorMap
+    Mbar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
     gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
-    @tensor CTlTbMbarM[tχ, tupD, tdnD; rχ, rupD, rdnD] :=
+    @tensoropt CTlTbMbarM[tχ, tupD, tdnD; rχ, rupD, rdnD] :=
         C[tχin, rχin] * Tl[tχ, tχin, rupDin, rdnDin] * Tb[rχin, tupDin, tdnDin, rχ] *
         Mbar[rdnDin, tdnDMin, p, rdnDMin, tdnDin] * gate2[tupDin, rdnD, tupDMin, rdnDMin] *
         gate1[rupDin, tdnD, rupDMin, tdnDMin] * M[rupDMin, tupD, p, rupD, tupDMin]
     return CTlTbMbarM
 end
 
-function get_QdR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)
+function get_QdR(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, x::Int, y::Int)::TensorMap
     # 右下角半边
-    C = envs[x, y].corner.rb
-    Tr = envs[x, y].transfer.r
-    Tb = envs[x, y].transfer.b
-    M = ipeps[x, y]
-    Mbar = ipepsbar[x, y]
+    C = envs[x, y].corner.rb::TensorMap
+    Tr = envs[x, y].transfer.r::TensorMap
+    Tb = envs[x, y].transfer.b::TensorMap
+    M = ipeps[x, y]::TensorMap
+    Mbar = ipepsbar[x, y]::TensorMap
     gate1 = swap_gate(space(M)[1], space(Mbar)[2]; Eltype=eltype(M))
     gate2 = swap_gate(space(M)[5], space(Mbar)[4]; Eltype=eltype(M))
 
-    @tensor CTrTbMbarM[(lχ, lupD, ldnD, tχ, tupD, tdnD); ()] :=
+    @tensoropt CTrTbMbarM[(lχ, lupD, ldnD, tχ, tupD, tdnD); ()] :=
         C[lχin, tχin] * Tr[lupMDin, ldnDin, tχ, tχin] * Tb[lχ, tupDin, tdnDin, lχin] *
         gate2[tupDin, ldnDin, tupDMin, ldnDMin] * Mbar[ldnD, tdnDMin, p, ldnDMin, tdnDin] *
         M[lupDMin, tupD, p, lupMDin, tupDMin] * gate1[lupD, tdnD, lupDMin, tdnDMin]
