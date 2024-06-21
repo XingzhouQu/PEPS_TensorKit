@@ -1,4 +1,4 @@
-# using MKL
+using MKL
 using LinearAlgebra
 LinearAlgebra.BLAS.set_num_threads(8)
 using TensorOperations, TensorKit
@@ -27,16 +27,16 @@ function main()
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 10  # 对每个虚时步长 τ , 最少投影这么多步
-    para[:maxStep1τ] = 500  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:maxStep1τ] = 2000  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
-    para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 100  # env bond dimension
+    para[:Dk] = 8  # Dkept in the simple udate
+    para[:χ] = 150  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:CTMparallel] = false  # use parallel CTMRG or not
+    para[:CTMparallel] = true  # use parallel CTMRG or not
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
-    para[:NNNmethod] = :bond
+    para[:TrotterOrder] = 2 # 用几阶Trotter分解,设为1或2
     para[:pspace] = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)
 
     pspace = Rep[ℤ₂×SU₂]((0, 0) => 2, (1, 1 // 2) => 1)

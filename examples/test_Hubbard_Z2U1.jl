@@ -26,13 +26,13 @@ function main()
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     # para[:τlis] = [1.0]
     para[:minStep1τ] = 10
-    para[:maxStep1τ] = 200  # 对每个虚时步长 τ , 最多投影这么多步
-    para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 100  # env bond dimension
+    para[:maxStep1τ] = 2000  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:Dk] = 8  # Dkept in the simple udate
+    para[:χ] = 200  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
-    para[:Etol] = 0.000001  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
+    para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
-    para[:NNNmethod] = :bond
+    para[:TrotterOrder] = 2 # 用几阶Trotter分解,设为1或2
     para[:CTMparallel] = true  # contract CTMRG env in parallel or not. Better with MKL??
     para[:pspace] = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
 
