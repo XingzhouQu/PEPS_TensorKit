@@ -1,9 +1,11 @@
 # pspace = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1/2) => 1, (1, -1/2)=> 1)
 
 function Z(pspace::GradedSpace)
-    z = TensorMap(ones, pspace, pspace)
+    z = TensorMap(zeros, pspace, pspace)
     block(z, Irrep[ℤ₂×U₁](1, 1 // 2)) .= -1.0
     block(z, Irrep[ℤ₂×U₁](1, -1 // 2)) .= -1.0
+    block(z, Irrep[ℤ₂×U₁](0, 0))[1, 1] = 1.0
+    block(z, Irrep[ℤ₂×U₁](0, 0))[2, 2] = 1.0
     return z
 end
 
@@ -55,22 +57,22 @@ end
 function FdagF₊(pspace::GradedSpace)
     aspace = Rep[ℤ₂×U₁]((1, 1 // 2) => 1)
     Fdag₊ = TensorMap(zeros, pspace, pspace ⊗ aspace)
-    block(Fdag₊, Irrep[ℤ₂×U₁](0, 0))[2, 1] = 1.0
+    block(Fdag₊, Irrep[ℤ₂×U₁](0, 0))[1, 1] = 1.0
     block(Fdag₊, Irrep[ℤ₂×U₁](1, 1 // 2))[1, 1] = 1.0
     F₊ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₊, Irrep[ℤ₂×U₁](0, 0))[1, 2] = 1.0
-    block(F₊, Irrep[ℤ₂×U₁](1, 1 // 2))[1, 1] = 1.0
+    block(F₊, Irrep[ℤ₂×U₁](1, 1 // 2))[2] = 1.0
     return Fdag₊, F₊
 end
 function FdagF₋(pspace::GradedSpace)
     # note c↓^dag|↑⟩ = -|↑↓⟩, c↓|↑↓⟩ = -|↑⟩  
     aspace = Rep[ℤ₂×U₁]((1, -1 // 2) => 1)
     Fdag₋ = TensorMap(zeros, pspace, pspace ⊗ aspace)
-    block(Fdag₋, Irrep[ℤ₂×U₁](0, 0))[2, 1] = -1.0
-    block(Fdag₋, Irrep[ℤ₂×U₁](1, -1 // 2))[1, 1] = -1.0
+    block(Fdag₋, Irrep[ℤ₂×U₁](0, 0))[1, 1] = -1.0
+    block(Fdag₋, Irrep[ℤ₂×U₁](1, -1 // 2))[1, 1] = 1.0
     F₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₋, Irrep[ℤ₂×U₁](0, 0))[1, 2] = -1.0
-    block(F₋, Irrep[ℤ₂×U₁](1, -1 // 2))[1, 1] = -1.0
+    block(F₋, Irrep[ℤ₂×U₁](1, -1 // 2))[2] = 1.0
     return Fdag₋, F₋
 end
 function FFdag₊(pspace::GradedSpace)
@@ -122,16 +124,14 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     Opn = n(pspace)
     OpI = id(pspace)
     Fdag₊, F₊ = FdagF₊(pspace)
-    @tensor fdagf₊[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₊[p1in, p2, a] * F₊[a, p3, p4]
+    @tensor fdagf₊[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₊[p1in, p2, a] * F₊[a, p3, p4] # OpZ[p1, p1in] *
     Fdag₋, F₋ = FdagF₋(pspace)
     @tensor fdagf₋[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₋[p1in, p2, a] * F₋[a, p3, p4]
-    # @tensor fdagf[p1, p3; p2, p4] := Fdag[p1, p2, a] * F[a, p3, p4]
 
     F₊, Fdag₊ = FFdag₊(pspace)
-    @tensor ffdag₊[p1, p3; p2, p4] := OpZ[p1, p1in] * F₊[p1in, p2, a] * Fdag₊[a, p3, p4]
+    @tensor ffdag₊[p1, p3; p2, p4] := OpZ[p1, p1in] * F₊[p1in, p2, a] * Fdag₊[a, p3, p4] # OpZ[p1, p1in] *
     F₋, Fdag₋ = FFdag₋(pspace)
     @tensor ffdag₋[p1, p3; p2, p4] := OpZ[p1, p1in] * F₋[p1in, p2, a] * Fdag₋[a, p3, p4]
-    # @tensor ffdag[p1, p3; p2, p4] := F[p1, p2, a] * Fdag[a, p3, p4]
     # 这里单点项要➗4
     gate = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd) -
            (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)

@@ -28,17 +28,17 @@ function main()
     para[:minStep1τ] = 10
     para[:maxStep1τ] = 2000  # 对每个虚时步长 τ , 最多投影这么多步
     para[:Dk] = 8  # Dkept in the simple udate
-    para[:χ] = 200  # env bond dimension
+    para[:χ] = 150  # env bond dimension
     para[:CTMit] = 20  # CTMRG iteration times
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长
     para[:verbose] = 1
-    para[:TrotterOrder] = 2 # 用几阶Trotter分解,设为1或2
+    para[:TrotterOrder] = 1 # 用几阶Trotter分解,设为1或2
     para[:CTMparallel] = true  # contract CTMRG env in parallel or not. Better with MKL??
     para[:pspace] = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
 
     pspace = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
-    aspacelr = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
-    aspacetb = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1 // 2) => 1, (1, -1 // 2) => 1)
+    aspacelr = Rep[ℤ₂×U₁]((0, 0) => 2)
+    aspacetb = Rep[ℤ₂×U₁]((0, 0) => 2)
     Lx = 2
     Ly = 2
     # # 决定初态每条腿的量子数
