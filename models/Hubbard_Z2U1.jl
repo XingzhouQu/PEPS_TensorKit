@@ -1,4 +1,6 @@
 # pspace = Rep[ℤ₂×U₁]((0, 0) => 2, (1, 1/2) => 1, (1, -1/2)=> 1)
+# 顺序：|0⟩, |↑↓⟩, |↑⟩, |↓⟩
+# 写算符时候分清domain和co-domain中的 aspace和pspace就知道如何映射了
 
 function Z(pspace::GradedSpace)
     z = TensorMap(zeros, pspace, pspace)
@@ -57,22 +59,22 @@ end
 function FdagF₊(pspace::GradedSpace)
     aspace = Rep[ℤ₂×U₁]((1, 1 // 2) => 1)
     Fdag₊ = TensorMap(zeros, pspace, pspace ⊗ aspace)
-    block(Fdag₊, Irrep[ℤ₂×U₁](0, 0))[1, 1] = 1.0
+    block(Fdag₊, Irrep[ℤ₂×U₁](0, 0))[2] = 1.0
     block(Fdag₊, Irrep[ℤ₂×U₁](1, 1 // 2))[1, 1] = 1.0
     F₊ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₊, Irrep[ℤ₂×U₁](0, 0))[1, 2] = 1.0
-    block(F₊, Irrep[ℤ₂×U₁](1, 1 // 2))[2] = 1.0
+    block(F₊, Irrep[ℤ₂×U₁](1, 1 // 2))[1] = 1.0
     return Fdag₊, F₊
 end
 function FdagF₋(pspace::GradedSpace)
     # note c↓^dag|↑⟩ = -|↑↓⟩, c↓|↑↓⟩ = -|↑⟩  
     aspace = Rep[ℤ₂×U₁]((1, -1 // 2) => 1)
     Fdag₋ = TensorMap(zeros, pspace, pspace ⊗ aspace)
-    block(Fdag₋, Irrep[ℤ₂×U₁](0, 0))[1, 1] = -1.0
+    block(Fdag₋, Irrep[ℤ₂×U₁](0, 0))[2] = -1.0
     block(Fdag₋, Irrep[ℤ₂×U₁](1, -1 // 2))[1, 1] = 1.0
     F₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₋, Irrep[ℤ₂×U₁](0, 0))[1, 2] = -1.0
-    block(F₋, Irrep[ℤ₂×U₁](1, -1 // 2))[2] = 1.0
+    block(F₋, Irrep[ℤ₂×U₁](1, -1 // 2))[1] = 1.0
     return Fdag₋, F₋
 end
 function FFdag₊(pspace::GradedSpace)
