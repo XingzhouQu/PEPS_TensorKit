@@ -62,9 +62,9 @@ function FdagF₋(pspace::GradedSpace)
     # note c↓^dag|↑⟩ = -|↑↓⟩, c↓|↑↓⟩ = -|↑⟩  
     aspace = Rep[ℤ₂](1 => 1)
     Fdag₋ = TensorMap(zeros, pspace, pspace ⊗ aspace)
-    block(Fdag₋, Irrep[ℤ₂](1))[2] = -1.0
+    block(Fdag₋, Irrep[ℤ₂](1))[2] = 1.0
     F₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
-    block(F₋, Irrep[ℤ₂](1))[2] = -1.0
+    block(F₋, Irrep[ℤ₂](1))[2] = 1.0
     return Fdag₋, F₋
 end
 function FFdag₊(pspace::GradedSpace)

@@ -36,18 +36,18 @@ function main()
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 200  # env bond dimension
+    para[:χ] = 100  # env bond dimension
     para[:CTMit] = 30  # CTMRG iteration times
     para[:CTMparallel] = true  # use parallel CTMRG or not. Use with MKL.
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
-    para[:NNNmethod] = :bond
+    para[:TrotterOrder] = 1 # 用几阶Trotter分解,设为1或2
     para[:pspace] = Rep[ℤ₂](0 => 1, 1 => 2)
 
     pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 16
+    Lx = 10
     Ly = 2
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -58,10 +58,10 @@ function main()
     # ipepsγλ = iPEPSΓΛ(pspace, aspacel, aspacet, aspacer, aspaceb, Lx, Ly; dtype=Float64)
 
     # simple update
-    # ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
-    # simple_update!(ipepsγλ, tJ_hij, para)
+    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
+    simple_update!(ipepsγλ, tJ_hij, para)
     # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
-    ipepsγλ, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
+    # ipepsγλ, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
@@ -75,7 +75,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
