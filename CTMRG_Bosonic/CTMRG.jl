@@ -3,28 +3,36 @@ include("./apply_proj.jl")
 
 
 """
-    CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false)
+    CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false, threshold=1e-8)
 
-Perform CTMRG `Nit`-iterations with environment dimension `χ`. 
+Perform CTMRG: Max number of iterations is `Nit` and environment dimension `χ`. 
+
+Keyword arguments: 
+
+`parallel = true` will use parallel CTMRG which is faster but consumes more memmory.
+
+`threshold` checks the convergence of CTMRG iterations. 
+If the the norm difference of the corner tensor spectrum between two successive CTM steps
+convergs below the given value, CTMRG process will stop.
 
 The Fermionic version also requires input of `ipepsbar` for efficiency.
 """
-function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false)
+function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false, threshold=1e-8)
     if parallel
-        _CTMRG_parallel!(ipeps, envs, χ, Nit)
+        _CTMRG_parallel!(ipeps, envs, χ, Nit; threshold=threshold)
     else
-        _CTMRG_seq!(ipeps, envs, χ, Nit)
+        _CTMRG_seq!(ipeps, envs, χ, Nit; threshold=threshold)
     end
     return nothing
 end
 
-function _CTMRG_seq!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
+function _CTMRG_seq!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; threshold=1e-8)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     it = 1
+    cornerSpec = Matrix{Array}(undef, Lx, Ly)  # 记录 corner tensor 的 SVD 谱. 顺序：Slt, Slb, Srt, Srb
     while it <= Nit
         println("============ CTMRG iteration $it / $Nit =======================")
-        # 这里的顺序可能也对优化结果有影响，可以测试
         @time "Left env" for xx in 1:Lx
             error_List = update_env_left_2by2!(ipeps, envs, xx, χ)
             println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
@@ -41,18 +49,30 @@ function _CTMRG_seq!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
             error_List = update_env_bottom_2by2!(ipeps, envs, yy, χ)
             println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
-        # GC.gc()
-        println()
-        flush(stdout)
-        it += 1
+        # convergence check
+        @time "Convergence Check" nrmDiff = CTM_convCheck!(cornerSpec, envs, it)
+        if nrmDiff < threshold
+            println("CTMRG converged at iteration $it with norm difference $nrmDiff < threshold $threshold")
+            println()
+            flush(stdout)
+            GC.gc()
+            break
+        else
+            println("Continue CTMRG with norm difference $nrmDiff > threshold $threshold")
+            println()
+            flush(stdout)
+            GC.gc()
+            it += 1
+        end
     end
     return nothing
 end
 
-function _CTMRG_parallel!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
+function _CTMRG_parallel!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; threshold=1e-8)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     it = 1
+    cornerSpec = Matrix{Array}(undef, Lx, Ly)  # 记录 corner tensor 的 SVD 谱. 顺序：Slt, Slb, Srt, Srb
     while it <= Nit
         println("============ CTMRG iteration $it / $Nit =======================")
         @time "Left-right env" @sync begin
@@ -87,11 +107,56 @@ function _CTMRG_parallel!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int)
             wait(t_future)
             wait(b_future)
         end
-        println()
-        flush(stdout)
-        it += 1
+        # convergence check
+        @time "Convergence Check" nrmDiff = CTM_convCheck!(cornerSpec, envs, it)
+        if nrmDiff < threshold
+            println("CTMRG converged at iteration $it with norm difference $nrmDiff < threshold $threshold")
+            println()
+            flush(stdout)
+            GC.gc()
+            break
+        else
+            println("Continue CTMRG with norm difference $nrmDiff > threshold $threshold")
+            println()
+            flush(stdout)
+            GC.gc()
+            it += 1
+        end
     end
     return nothing
+end
+
+
+function CTM_convCheck!(cornerSpec::Matrix, envs::iPEPSenv, it::Int)
+    SpecNew = similar(cornerSpec)
+    Lx = envs.Lx
+    Ly = envs.Ly
+    @floop for val in CartesianIndices((Lx, Ly))
+        (xx, yy) = Tuple(val)
+        _, Slt, _ = tsvd(envs.corner[xx, yy].lt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Slb, _ = tsvd(envs.corner[xx, yy].lb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Srt, _ = tsvd(envs.corner[xx, yy].rt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Srb, _ = tsvd(envs.corner[xx, yy].rb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        SpecNew[xx, yy] = map(x -> diag(convert(Array, x)), [Slt, Slb, Srt, Srb])
+    end
+
+    if it == 1  # 第一轮CTMRG初始化 cornerSpec 即可，不用比较
+        cornerSpec = SpecNew
+        return Inf
+    else
+        difference = abs.(SpecNew - cornerSpec)
+        record = Matrix{Float64}(undef, Lx, Ly)
+        @floop for val in CartesianIndices((Lx, Ly))
+            (xx, yy) = Tuple(val)
+            lt = norm(difference[xx, yy][1])
+            lb = norm(difference[xx, yy][2])
+            rt = norm(difference[xx, yy][3])
+            rb = norm(difference[xx, yy][4])
+            record[xx, yy] = maximum([lt, lb, rt, rb])
+        end
+        cornerSpec = SpecNew
+        return maximum(record)
+    end
 end
 
 
