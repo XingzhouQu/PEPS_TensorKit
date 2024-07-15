@@ -21,11 +21,12 @@ returns nothing but the expectation value of energy ⟨H⟩ and the gradient of 
 function loss_Energy(ipeps::iPEPS, envs::iPEPSEnv, get_op::Function, CTMRG::Function, para::Dict{Symbol,Any})
     # 求梯度. 以下符号简记：A → ipeps张量，e → ipeps环境张量，ε → 求能量的函数，c → CMTRG函数
 
-    ∂ε_∂A, ∂ε_∂e = gradient(ipeps, envs) do peps, env
+    E, grad = withgradient(ipeps, envs) do peps, env
         get_op = ignore_derivatives(get_op)
         para = ignore_derivatives(para)
         Cal_Energy(peps, env, get_op, para)
     end
+    ∂ε_∂A, ∂ε_∂e = grad
 
     # TODO 下面求K，L都是形式上写的模板，实现这些函数和方法
     # K = ∂c/∂e,  L = ∂c/∂A 都是 Jacobian.

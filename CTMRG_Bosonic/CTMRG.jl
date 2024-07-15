@@ -133,10 +133,10 @@ function CTM_convCheck!(cornerSpec::Matrix, envs::iPEPSenv, it::Int)
     Ly = envs.Ly
     @floop for val in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(val)
-        _, Slt, _ = tsvd(envs.corner[xx, yy].lt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
-        _, Slb, _ = tsvd(envs.corner[xx, yy].lb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
-        _, Srt, _ = tsvd(envs.corner[xx, yy].rt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
-        _, Srb, _ = tsvd(envs.corner[xx, yy].rb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Slt, _ = tsvd(envs[xx, yy].corner.lt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Slb, _ = tsvd(envs[xx, yy].corner.lb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Srt, _ = tsvd(envs[xx, yy].corner.rt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
+        _, Srb, _ = tsvd(envs[xx, yy].corner.rb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
         SpecNew[xx, yy] = map(x -> diag(convert(Array, x)), [Slt, Slb, Srt, Srb])
     end
 
