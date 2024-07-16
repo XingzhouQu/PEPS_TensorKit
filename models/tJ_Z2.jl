@@ -1,113 +1,115 @@
 # pspace = Rep[ℤ₂](0 => 1, 1 => 2) s.t. 0 => |0⟩, 1 => |up⟩, |dn⟩
-# 需要检查核测试
+module Z2tJFermion
 
-function Z(pspace::GradedSpace)
+using TensorKit
+
+const pspace = Rep[ℤ₂](0 => 1, 1 => 2)
+
+const Z = let
     z = TensorMap(zeros, pspace, pspace)
     block(z, Irrep[ℤ₂](0)) .= 1.0
     block(z, Irrep[ℤ₂](1))[1, 1] = -1.0
     block(z, Irrep[ℤ₂](1))[2, 2] = -1.0
-    return z
+    z
 end
 
-function n₊(pspace::GradedSpace)
+const n₊ = let
     n₊ = TensorMap(zeros, pspace, pspace)
     block(n₊, Irrep[ℤ₂](1))[1, 1] = 1.0
-    return n₊
+    n₊
 end
 
-function n₋(pspace::GradedSpace)
+const n₋ = let
     n₋ = TensorMap(zeros, pspace, pspace)
     block(n₋, Irrep[ℤ₂](1))[2, 2] = 1.0
-    return n₋
+    n₋
 end
 
-function n(pspace::GradedSpace)
-    return n₊(pspace) + n₋(pspace)
-end
+const n = n₊ + n₋
 
-function Sz(pspace::GradedSpace)
-    return (n₊(pspace) - n₋(pspace)) / 2
-end
+const Sz = (n₊ - n₋) / 2
 
 # S+ S- interaction
 # convention: S⋅S = SzSz + (S₊₋ + S₋₊)/2
-function S₊₋(pspace::GradedSpace)
+const S₊₋ = let
     aspace = Rep[ℤ₂](0 => 1)
     S₊ = TensorMap(zeros, pspace, pspace ⊗ aspace)
     block(S₊, Irrep[ℤ₂](1))[1, 2] = 1.0
     S₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(S₋, Irrep[ℤ₂](1))[2, 1] = 1.0
-    return S₊, S₋
+    S₊, S₋
 end
 
-function S₋₊(pspace::GradedSpace)
-    Sp, Sm = S₊₋(pspace)
+const S₋₊ = let
+    Sp, Sm = Z2tJFermion.S₊₋
     aspace = Rep[ℤ₂](0 => 1)
     iso = isometry(aspace, flip(aspace))
     @tensor S₋[a; c d] := Sp'[a, b, c] * iso'[d, b]
     @tensor S₊[d a; c] := Sm'[a, b, c] * iso[b, d]
-    return S₋, S₊
+    S₋, S₊
 end
 
 # hopping term, FdagF₊ = c↑^dag c↑
-function FdagF₊(pspace::GradedSpace)
+const FdagF₊ = let
     aspace = Rep[ℤ₂](1 => 1)
     Fdag₊ = TensorMap(zeros, pspace, pspace ⊗ aspace)
     block(Fdag₊, Irrep[ℤ₂](1))[1] = 1.0
     F₊ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₊, Irrep[ℤ₂](1))[1] = 1.0
-    return Fdag₊, F₊
+    Fdag₊, F₊
 end
-function FdagF₋(pspace::GradedSpace)
+const FdagF₋ = let
     # note c↓^dag|↑⟩ = -|↑↓⟩, c↓|↑↓⟩ = -|↑⟩  
     aspace = Rep[ℤ₂](1 => 1)
     Fdag₋ = TensorMap(zeros, pspace, pspace ⊗ aspace)
     block(Fdag₋, Irrep[ℤ₂](1))[2] = 1.0
     F₋ = TensorMap(zeros, aspace ⊗ pspace, pspace)
     block(F₋, Irrep[ℤ₂](1))[2] = 1.0
-    return Fdag₋, F₋
+    Fdag₋, F₋
 end
-function FFdag₊(pspace::GradedSpace)
-    Fdagup, Fup = FdagF₊(pspace)
+const FFdag₊ = let
+    Fdagup, Fup = FdagF₊
     aspace = Rep[ℤ₂](1 => 1)
     iso = isometry(aspace, flip(aspace))
     @tensor F₊[a; c d] := Fdagup'[a, b, c] * iso'[d, b]
     @tensor Fdag₊[d a; c] := Fup'[a, b, c] * iso[b, d]
-    return F₊, Fdag₊
+    F₊, Fdag₊
 end
-function FFdag₋(pspace::GradedSpace)
-    Fdagdn, Fdn = FdagF₋(pspace)
+const FFdag₋ = let
+    Fdagdn, Fdn = FdagF₋
     aspace = Rep[ℤ₂](1 => 1)
     iso = isometry(aspace, flip(aspace))
     @tensor F₋[a; c d] := Fdagdn'[a, b, c] * iso'[d, b]
     @tensor Fdag₋[d a; c] := Fdn'[a, b, c] * iso[b, d]
-    return F₋, Fdag₋
+    F₋, Fdag₋
 end
 
 # singlet paring operator Δₛ = (c↑c↓ - c↓c↑)/√2
-function Δₛ(pspace::GradedSpace)
-    OpZ = Z(pspace)
-    A = FFdag₊(pspace)[1]
-    B = FdagF₋(pspace)[2]
-    C = FFdag₋(pspace)[1]
-    D = FdagF₊(pspace)[2]
-    @tensor updn[p1, p3; p2, p4] := OpZ[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
-    @tensor dnup[p1, p3; p2, p4] := OpZ[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
+const Δₛ = let
+    A = FFdag₊[1]
+    B = FdagF₋[2]
+    C = FFdag₋[1]
+    D = FdagF₊[2]
+    @tensor updn[p1, p3; p2, p4] := Z[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
+    @tensor dnup[p1, p3; p2, p4] := Z[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
 
-    return (updn - dnup) / sqrt(2)
+    (updn - dnup) / sqrt(2)
 end
 # singlet paring operator Δₛdag = (c↓dag c↑dag - c↑dag c↓dag)/√2
-function Δₛdag(pspace::GradedSpace)
-    OpZ = Z(pspace)
-    A = FdagF₋(pspace)[1]
-    B = FFdag₊(pspace)[2]
-    C = FdagF₊(pspace)[1]
-    D = FFdag₋(pspace)[2]
-    @tensor dnup[p1, p3; p2, p4] := OpZ[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
-    @tensor updn[p1, p3; p2, p4] := OpZ[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
+const Δₛdag = let
+    A = FdagF₋[1]
+    B = FFdag₊[2]
+    C = FdagF₊[1]
+    D = FFdag₋[2]
+    @tensor dnup[p1, p3; p2, p4] := Z[p1, p1in] * A[p1in, p2, a] * B[a, p3, p4]
+    @tensor updn[p1, p3; p2, p4] := Z[p1, p1in] * C[p1in, p2, a] * D[a, p3, p4]
 
-    return (dnup - updn) / sqrt(2)
+    (dnup - updn) / sqrt(2)
 end
+
+end
+
+const Z₂tJFermion = Z2tJFermion
 
 
 function tJ_hij(para::Dict{Symbol,Any})
@@ -118,24 +120,25 @@ function tJ_hij(para::Dict{Symbol,Any})
     h = para[:h]  # Zeeman field
     μ = para[:μ]
     pspace = para[:pspace]
-    OpZ = Z(pspace)
-    OpSz = Sz(pspace)
-    Opn = n(pspace)
-    OpI = id(pspace)
 
-    Fdag₊, F₊ = FdagF₊(pspace)
+    OpZ = Z2tJFermion.Z
+    OpSz = Z2tJFermion.Sz
+    Opn = Z2tJFermion.n
+    OpI = isometry(pspace, pspace)
+
+    Fdag₊, F₊ = Z2tJFermion.FdagF₊
     @tensor fdagf₊[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₊[p1in, p2, a] * F₊[a, p3, p4]
-    Fdag₋, F₋ = FdagF₋(pspace)
+    Fdag₋, F₋ = Z2tJFermion.FdagF₋
     @tensor fdagf₋[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₋[p1in, p2, a] * F₋[a, p3, p4]
 
-    F₊, Fdag₊ = FFdag₊(pspace)
+    F₊, Fdag₊ = Z2tJFermion.FFdag₊
     @tensor ffdag₊[p1, p3; p2, p4] := OpZ[p1, p1in] * F₊[p1in, p2, a] * Fdag₊[a, p3, p4]
-    F₋, Fdag₋ = FFdag₋(pspace)
+    F₋, Fdag₋ = Z2tJFermion.FFdag₋
     @tensor ffdag₋[p1, p3; p2, p4] := OpZ[p1, p1in] * F₋[p1in, p2, a] * Fdag₋[a, p3, p4]
 
-    SL, SR = S₊₋(pspace)
+    SL, SR = Z2tJFermion.S₊₋
     @tensor spsm[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
-    SL, SR = S₋₊(pspace)
+    SL, SR = Z2tJFermion.S₋₊
     @tensor smsp[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
 
     # 这里单点项要➗4

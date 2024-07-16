@@ -56,10 +56,10 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     Opnd = nd(pspace)
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
-    # Opn = n(pspace)
+    OpI = isometry(pspace, pspace)
     # 这里单点项要➗4？
-    gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ id(pspace) + id(pspace) ⊗ Opnd)
-    # -(μ / 4) * (Opn ⊗ id(pspace) + id(pspace) ⊗ Opn)
+    gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd)
+    # -(μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
     return [gate]
 end
 

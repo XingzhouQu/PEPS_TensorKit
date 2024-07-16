@@ -131,7 +131,7 @@ struct iPEPSΓΛ
         for xx in 1:Lx, yy in 1:Ly
             # 这里以后可以改用randisometry初始化。现在版本randisometry有bug?
             tmp = TensorMap(randn, dtype, aspacelr ⊗ aspacetb ⊗ pspace, aspacelr ⊗ aspacetb)
-            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), id(aspacelr), id(aspacetb))
+            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), isometry(aspacelr, aspacelr), isometry(aspacetb, aspacetb))
         end
         # fill!(γλ, ini)  # 注意：这里不能用 fill! 初始化，这样会把所有的矩阵元都对应同一个引用，改一个就是在改所有！！！
         return new(γλ, Lx, Ly)
@@ -141,7 +141,7 @@ struct iPEPSΓΛ
         γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
         for xx in 1:Lx, yy in 1:Ly
             tmp = TensorMap(randn, dtype, aspacel[xx, yy] ⊗ aspacet[xx, yy] ⊗ pspace, aspacer[xx, yy] ⊗ aspaceb[xx, yy])
-            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), id(aspacelr), id(aspacetb))
+            γλ[xx, yy] = _iPEPSΓΛ(tmp / norm(tmp), isometry(aspacelr, aspacelr), isometry(aspacetb, aspacetb))
         end
         return new(γλ, Lx, Ly)
     end
@@ -217,7 +217,7 @@ function iPEPSΓΛ(ipeps::iPEPS)
     # 初始化, 先填充避免undef无法访问
     γλ = Matrix{_iPEPSΓΛ}(undef, Lx, Ly)
     for xx in 1:Lx, yy in 1:Ly
-        γλ[xx, yy] = _iPEPSΓΛ(ipeps[xx, yy], id(space(ipeps[1, 1])[3]))
+        γλ[xx, yy] = _iPEPSΓΛ(ipeps[xx, yy], isometry(space(ipeps[1, 1])[3], space(ipeps[1, 1])[3]))
     end
     # 对每一个xx遍历yy, 纵向更新Γ 和 Λ.
     for xx in 1:Lx, yy in 1:Ly

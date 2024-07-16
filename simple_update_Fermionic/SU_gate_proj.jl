@@ -148,8 +148,8 @@ function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     @tensor Γ1new[l1, t1, pu; r1, b1] :=
         X1[l1in, t1in, b1inp, toΓ1] * v1new[toΓ1, puin, r1] * swgtlu[pu, b1in, puin, b1inp] *
         inv(ipeps[xx, yy].l)[l1, l1in] * inv(ipeps[xx, yy].t)[t1, t1in] * inv(ipeps[xx, yy].b)[b1in, b1]
-    @tensor Γ2new[l2, t2, pmid; r2, b2] := 
-        Γ2p[l2in, t2in, pmid, r2in, b2] * inv(ipeps[xx+1, yy].t)[t2, t2in] * inv(ipeps[xx+1, yy].r)[r2in, r2] * 
+    @tensor Γ2new[l2, t2, pmid; r2, b2] :=
+        Γ2p[l2in, t2in, pmid, r2in, b2] * inv(ipeps[xx+1, yy].t)[t2, t2in] * inv(ipeps[xx+1, yy].r)[r2in, r2] *
         inv(λ1p)[l2, l2in]
     @tensor Γ3new[l3, t3, pd; r3, b3] :=
         v3new[t3, pdin, toΓ3] * X3[toΓ3, l3inp, r3in, b3in] * swgtrd[pd, l3in, pdin, l3inp] *
@@ -305,7 +305,7 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[le1, puin, toΓ1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx-1, yy].Γ[le2, te2, pmid, l1, be2] *
         ipeps[xx-1, yy].l[l2, le2] * ipeps[xx-1, yy].t[t2, te2] * ipeps[xx-1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pd, pu, pdin, puin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一.
-    Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk))
+    Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx-1, yy] 点，并做截断和归一
@@ -390,7 +390,7 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[toΓ1, puin, b1in] * ipeps[xx, yy].b[b1in, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] * ipeps[xx, yy+1].l[l2, le2] *
         swgtmid[pd, l2, pdinp, l2in] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[toΓ3, pdin, l2in] * gateNNN[pdinp, pu, pdin, puin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一.
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx, yy+1] 点，并做截断和归一

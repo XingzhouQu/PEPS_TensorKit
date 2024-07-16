@@ -124,7 +124,7 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     OpZ = Z(pspace)
     Opnd = nd(pspace)
     Opn = n(pspace)
-    OpI = id(pspace)
+    OpI = isometry(pspace, pspace)
     Fdag₊, F₊ = FdagF₊(pspace)
     @tensor fdagf₊[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag₊[p1in, p2, a] * F₊[a, p3, p4] # OpZ[p1, p1in] *
     Fdag₋, F₋ = FdagF₋(pspace)

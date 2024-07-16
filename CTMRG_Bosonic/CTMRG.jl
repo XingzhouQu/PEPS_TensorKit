@@ -1,7 +1,6 @@
 include("./get_proj.jl")
 include("./apply_proj.jl")
 
-
 """
     CTMRG!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false, threshold=1e-8)
 
@@ -17,7 +16,7 @@ convergs below the given value, CTMRG process will stop.
 
 The Fermionic version also requires input of `ipepsbar` for efficiency.
 """
-function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false, threshold=1e-8)
+function CTMRG!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; parallel=false, threshold=1e-12)
     if parallel
         _CTMRG_parallel!(ipeps, envs, χ, Nit; threshold=threshold)
     else
@@ -50,7 +49,7 @@ function _CTMRG_seq!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; threshold=
             println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
         end
         # convergence check
-        @time "Convergence Check" nrmDiff = CTM_convCheck!(cornerSpec, envs, it)
+        @time "Convergence Check" nrmDiff, cornerSpec = CTM_convCheck(cornerSpec, envs, it, χ)
         if nrmDiff < threshold
             println("CTMRG converged at iteration $it with norm difference $nrmDiff < threshold $threshold")
             println()
@@ -75,40 +74,32 @@ function _CTMRG_parallel!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; thres
     cornerSpec = Matrix{Array}(undef, Lx, Ly)  # 记录 corner tensor 的 SVD 谱. 顺序：Slt, Slb, Srt, Srb
     while it <= Nit
         println("============ CTMRG iteration $it / $Nit =======================")
-        @time "Left-right env" @sync begin
-            l_future = Threads.@spawn begin
-                for xx in 1:Lx
-                    error_List = update_env_left_2by2!(ipeps, envs, xx, χ)
-                    println("Iteration $it, update left edge (contract column-$xx) truncation error $(maximum(error_List))")
+        @time "Left-right env" for xx in 1:Lx
+            @floop for lr in 1:2
+                if lr == 1
+                    error_List_l = update_env_left_2by2!(ipeps, envs, xx, χ)
+                    println("Update left edge (contract column-$xx) truncation error $(maximum(error_List_l))")
+                else
+                    error_List_r = update_env_right_2by2!(ipeps, envs, Lx - xx + 1, χ)
+                    println("Update right edge (contract column-$(Lx-xx+1)) truncation error $(maximum(error_List_r))")
                 end
             end
-            r_future = Threads.@spawn begin
-                for xx in Lx:-1:1
-                    error_List = update_env_right_2by2!(ipeps, envs, xx, χ)
-                    println("Iteration $it, update right edge (contract column-$xx) truncation error $(maximum(error_List))")
-                end
-            end
-            wait(l_future)
-            wait(r_future)
+            flush(stdout)
         end
-        @time "Top-Bottom env" @sync begin
-            t_future = Threads.@spawn begin
-                for yy in 1:Ly
-                    error_List = update_env_top_2by2!(ipeps, envs, yy, χ)
-                    println("Iteration $it, update top edge (contract row-$yy) truncation error $(maximum(error_List))")
+        @time "Top-Bottom env" for yy in 1:Ly
+            @floop for tb in 1:2
+                if tb == 1
+                    error_List_t = update_env_top_2by2!(ipeps, envs, yy, χ)
+                    println("Update top edge (contract row-$yy) truncation error $(maximum(error_List_t))")
+                else
+                    error_List_b = update_env_bottom_2by2!(ipeps, envs, Ly - yy + 1, χ)
+                    println("Update bottom edge (contract row-$(Ly-yy+1)) truncation error $(maximum(error_List_b))")
                 end
             end
-            b_future = Threads.@spawn begin
-                for yy in Ly:-1:1
-                    error_List = update_env_bottom_2by2!(ipeps, envs, yy, χ)
-                    println("Iteration $it, update bottom edge (contract row-$yy) truncation error $(maximum(error_List))")
-                end
-            end
-            wait(t_future)
-            wait(b_future)
+            flush(stdout)
         end
         # convergence check
-        @time "Convergence Check" nrmDiff = CTM_convCheck!(cornerSpec, envs, it)
+        @time "Convergence Check" nrmDiff, cornerSpec = CTM_convCheck(cornerSpec, envs, it, χ)
         if nrmDiff < threshold
             println("CTMRG converged at iteration $it with norm difference $nrmDiff < threshold $threshold")
             println()
@@ -127,7 +118,7 @@ function _CTMRG_parallel!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, Nit::Int; thres
 end
 
 
-function CTM_convCheck!(cornerSpec::Matrix, envs::iPEPSenv, it::Int)
+function CTM_convCheck(cornerSpec::Matrix, envs::iPEPSenv, it::Int, χ::Int)
     SpecNew = similar(cornerSpec)
     Lx = envs.Lx
     Ly = envs.Ly
@@ -137,16 +128,20 @@ function CTM_convCheck!(cornerSpec::Matrix, envs::iPEPSenv, it::Int)
         _, Slb, _ = tsvd(envs[xx, yy].corner.lb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
         _, Srt, _ = tsvd(envs[xx, yy].corner.rt, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
         _, Srb, _ = tsvd(envs[xx, yy].corner.rb, ((1,), (2,)); trunc=notrunc(), alg=TensorKit.SVD())
-        SpecNew[xx, yy] = map(x -> diag(convert(Array, x)), [Slt, Slb, Srt, Srb])
+        SpecNew[xx, yy] = map([Slt, Slb, Srt, Srb]) do x  # 前几次环境维数可能还没有涨到χ, 就需要补充0进去
+            specfill = zeros(χ)
+            xp = diag(convert(Array, x))
+            specfill[1:length(xp)] = xp
+            specfill
+        end
     end
 
     if it == 1  # 第一轮CTMRG初始化 cornerSpec 即可，不用比较
-        cornerSpec = SpecNew
-        return Inf
+        return Inf, SpecNew
     else
-        difference = abs.(SpecNew - cornerSpec)
+        difference = SpecNew - cornerSpec
         record = Matrix{Float64}(undef, Lx, Ly)
-        @floop for val in CartesianIndices((Lx, Ly))
+        for val in CartesianIndices((Lx, Ly))
             (xx, yy) = Tuple(val)
             lt = norm(difference[xx, yy][1])
             lb = norm(difference[xx, yy][2])
@@ -154,8 +149,7 @@ function CTM_convCheck!(cornerSpec::Matrix, envs::iPEPSenv, it::Int)
             rb = norm(difference[xx, yy][4])
             record[xx, yy] = maximum([lt, lb, rt, rb])
         end
-        cornerSpec = SpecNew
-        return maximum(record)
+        return maximum(record), SpecNew
     end
 end
 
@@ -179,14 +173,14 @@ function update_env_left_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     # 误差列表
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
-    @floop for yy in 1:Ly
+    Threads.@threads for yy in 1:Ly
         projup, projdn, ϵ = get_proj_update_left(ipeps, envs, x, yy, χ)
         proj_List[yy, 1] = projup
         proj_List[yy, 2] = projdn
         error_List[yy] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    @floop for yy in 1:Ly
+    Threads.@threads for yy in 1:Ly
         if yy == 1
             apply_proj_left!(ipeps, envs, proj_List[Ly, 2], proj_List[yy, 1], x, yy)
             apply_proj_ltCorner_updateL!(envs, proj_List[Ly, 1], x, 1)
@@ -208,7 +202,7 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
     # 误差列表
     error_List = Vector{Float64}(undef, Ly)
     # ----------------- 先求proj ---------------------
-    @floop for yy in 1:Ly
+    Threads.@threads for yy in 1:Ly
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`x-1`
         projup, projdn, ϵ = get_proj_update_right(ipeps, envs, x - 1, yy, χ)
         proj_List[yy, 1] = projup
@@ -216,7 +210,7 @@ function update_env_right_2by2!(ipeps::iPEPS, envs::iPEPSenv, x::Int, χ::Int)
         error_List[yy] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    @floop for yy in 1:Ly
+    Threads.@threads for yy in 1:Ly
         if yy == 1
             apply_proj_right!(ipeps, envs, proj_List[Ly, 2], proj_List[yy, 1], x, yy)
             apply_proj_rtCorner_updateR!(envs, proj_List[Ly, 1], x, yy)
@@ -238,14 +232,14 @@ function update_env_top_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     # 误差列表
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
-    @floop for xx in 1:Lx
+    Threads.@threads for xx in 1:Lx
         projleft, projright, ϵ = get_proj_update_top(ipeps, envs, xx, y, χ)
         proj_List[xx, 1] = projleft
         proj_List[xx, 2] = projright
         error_List[xx] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    @floop for xx in 1:Lx
+    Threads.@threads for xx in 1:Lx
         if xx == 1
             apply_proj_top!(ipeps, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
             apply_proj_ltCorner_updateT!(envs, proj_List[Lx, 1], xx, y)
@@ -267,7 +261,7 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
     # 误差列表
     error_List = Vector{Float64}(undef, Lx)
     # ----------------- 先求proj ---------------------
-    @floop for xx in 1:Lx
+    Threads.@threads for xx in 1:Lx
         # 注意这里，求右侧/下侧投影算符时后，基准点要偏离一列/一行。也就是下面的`y-1`
         projleft, projright, ϵ = get_proj_update_bottom(ipeps, envs, xx, y - 1, χ)
         proj_List[xx, 1] = projleft
@@ -275,7 +269,7 @@ function update_env_bottom_2by2!(ipeps::iPEPS, envs::iPEPSenv, y::Int, χ::Int)
         error_List[xx] = ϵ
     end
     # ------------------ 再更新环境 ----------------------
-    @floop for xx in 1:Lx
+    Threads.@threads for xx in 1:Lx
         if xx == 1
             apply_proj_bottom!(ipeps, envs, proj_List[Lx, 2], proj_List[xx, 1], xx, y)
             apply_proj_lbCorner_updateB!(envs, proj_List[Lx, 1], xx, y)

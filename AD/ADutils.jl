@@ -1,5 +1,5 @@
 using Zygote
-using ChainRulesCore.ignore_derivatives
+using ChainRulesCore: ignore_derivatives
 using OptimKit
 
 include("./def_adjoints.jl")
@@ -18,7 +18,7 @@ returns nothing but the expectation value of energy ⟨H⟩ and the gradient of 
 
 需要根据能量期望值的计算对内部略加修改
 """
-function loss_Energy(ipeps::iPEPS, envs::iPEPSEnv, get_op::Function, CTMRG::Function, para::Dict{Symbol,Any})
+function loss_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, CTMRG::Function, para::Dict{Symbol,Any})
     # 求梯度. 以下符号简记：A → ipeps张量，e → ipeps环境张量，ε → 求能量的函数，c → CMTRG函数
 
     E, grad = withgradient(ipeps, envs) do peps, env
@@ -44,7 +44,7 @@ function loss_Energy(ipeps::iPEPS, envs::iPEPSEnv, get_op::Function, CTMRG::Func
 end
 
 
-function Cal_Energy(ipeps::iPEPS, envs::iPEPSEnv, get_op::Function, para::Dict{Symbol,Any})
+function Cal_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, para::Dict{Symbol,Any})
     # 初始化
     Lx = ipeps.Lx::Int
     Ly = ipeps.Ly::Int
@@ -54,9 +54,9 @@ function Cal_Energy(ipeps::iPEPS, envs::iPEPSEnv, get_op::Function, para::Dict{S
     Etot = 0.0
     for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
-        bond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hij"], para, [xx, yy], [xx + 1, yy], get_op)
+        bond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op)
         Etot += get(bond, "hij", NaN)
-        bond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hij"], para, [xx, yy], [xx, yy + 1], get_op)
+        bond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op)
         Etot += get(bond, "hij", NaN)
     end
     E = Etot / (Lx * Ly)  # TODO 这里的能量暂时没有扣除化学势的贡献，这样做对吗？
@@ -87,12 +87,4 @@ function Non_mutating_Wrapper_CTM(ipeps::iPEPS, envs::iPEPSenv, para::Dict{Symbo
     para = ignore_derivatives(para)
     CTMRG!(ipeps::iPEPS, envs::iPEPSenv, para[:χ], para[:Nit]; parallel=false)
     return envs
-end
-
-
-"""
-
-"""
-function ()
-
 end

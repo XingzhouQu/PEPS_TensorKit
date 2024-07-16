@@ -31,23 +31,24 @@ function main()
     para[:μ] = 5.4  # set μ = 5.2,  n = 0.89986
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
-    para[:minStep1τ] = 100   # 对每个虚时步长 τ , 最少投影这么多步
-    para[:maxStep1τ] = 2000  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:minStep1τ] = 50   # 对每个虚时步长 τ , 最少投影这么多步
+    para[:maxStep1τ] = 1000  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
     para[:χ] = 100  # env bond dimension
-    para[:CTMit] = 30  # CTMRG iteration times
+    para[:CTMit] = 30  # Maximum CTMRG iteration times
     para[:CTMparallel] = true  # use parallel CTMRG or not. Use with MKL.
+    para[:CTMthreshold] = 1e-12
     para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
-    para[:TrotterOrder] = 1 # 用几阶Trotter分解,设为1或2
+    para[:TrotterOrder] = 2 # 用几阶Trotter分解,设为1或2
     para[:pspace] = Rep[ℤ₂](0 => 1, 1 => 2)
 
     pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 10
+    Lx = 30
     Ly = 2
     # # 决定初态每条腿的量子数
     # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
@@ -74,7 +75,7 @@ function main()
     # check_qn(ipeps, envs)
 
     # 最后再做CTMRG
-    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel])
+    CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel], threshold=para[:CTMthreshold])
     # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])h$(para[:h])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量

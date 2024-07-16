@@ -13,8 +13,8 @@ function swap_gate(s1::T, s2::T; Eltype=Float64) where {T<:ElementarySpace}
     rep = collect(sectors(s1))[1]
     reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
     # -------------------------------------------
-    tmp1 = id(s1)
-    tmp2 = id(s2)
+    tmp1 = isometry(s1, s1)
+    tmp2 = isometry(s2, s2)
     gate = tmp1 ⊗ tmp2
     for (f1, f2) in fusiontrees(gate)
         # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
