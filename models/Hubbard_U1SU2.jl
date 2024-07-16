@@ -1,3 +1,9 @@
+module U1SU2Fermion
+
+using TensorKit
+
+const pspace = 
+
 function n(pspace::GradedSpace)
     n = TensorMap(ones, pspace, pspace)
     block(n, Irrep[U₁×SU₂](2, 0)) .= 2
@@ -48,6 +54,9 @@ function FFdag(pspace::GradedSpace)
     return ffdag
 end
 
+end
+
+const U₁SU₂Fermion = U1SU2Fermion
 
 function Hubbard_hij(para::Dict{Symbol,Any})
     t = para[:t]
@@ -57,7 +66,7 @@ function Hubbard_hij(para::Dict{Symbol,Any})
     fdagf = FdagF(pspace)
     ffdag = FFdag(pspace)
     OpI = isometry(pspace, pspace)
-    # 这里单点项要➗4？
+    # 这里单点项要➗4
     gate = -t * (fdagf + ffdag) + (U / 4) * (Opnd ⊗ OpI + OpI ⊗ Opnd)
     # -(μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
     return [gate]

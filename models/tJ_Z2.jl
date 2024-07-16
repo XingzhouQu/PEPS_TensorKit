@@ -154,35 +154,35 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
     elseif tag == "hijNNN"
         return tJ_hij(para)[2]
     elseif tag == "CdagCup"
-        Fdag, F = FdagF₊(para[:pspace])
-        OpZ = Z(para[:pspace])
+        Fdag, F = Z2tJFermion.FdagF₊
+        OpZ = Z2tJFermion.Z
         @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
         return fdagf
     elseif tag == "CdagCdn"
-        Fdag, F = FdagF₋(para[:pspace])
-        OpZ = Z(para[:pspace])
+        Fdag, F = Z2tJFermion.FdagF₋
+        OpZ = Z2tJFermion.Z
         @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
         return fdagf
     elseif tag == "SpSm"
-        SL, SR = S₊₋(para[:pspace])
+        SL, SR = Z2tJFermion.S₊₋
         @tensor ss[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
         return ss
     elseif tag == "SzSz"
-        return Sz(para[:pspace]) ⊗ Sz(para[:pspace])
+        return Z2tJFermion.Sz ⊗ Z2tJFermion.Sz
     elseif tag == "NN"
-        return n(para[:pspace]) ⊗ n(para[:pspace])
+        return Z2tJFermion.n ⊗ Z2tJFermion.n
     elseif tag == "Nup"
-        return n₊(para[:pspace])
+        return Z2tJFermion.n₊
     elseif tag == "Ndn"
-        return n₋(para[:pspace])
+        return Z2tJFermion.n₋
     elseif tag == "Sz"
-        return Sz(para[:pspace])
+        return Z2tJFermion.Sz
     elseif tag == "N"
-        return n(para[:pspace])
+        return Z2tJFermion.n
     elseif tag == "Δₛ"
-        return Δₛ(para[:pspace])
+        return Z2tJFermion.Δₛ
     elseif tag == "Δₛdag"
-        return Δₛdag(para[:pspace])
+        return Z2tJFermion.Δₛdag
     else
         error("Unsupported tag $tag. Check input tag or add this operator.")
     end

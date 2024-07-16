@@ -1,22 +1,28 @@
-function Sz(pspace::GradedSpace)
+module U1spin
+
+using TensorKit
+
+const pspace = Rep[U₁](-1 // 2 => 1, 1 // 2 => 1)
+
+const Sz = let
     Sz = TensorMap(ones, pspace, pspace)
     block(Sz, Irrep[U₁](1 // 2)) .= 1 / 2
     block(Sz, Irrep[U₁](-1 // 2)) .= -1 / 2
-    return Sz
+    Sz
 end
 
 # S+ S- interaction
 # convention: S⋅S = SzSz + (S₊₋ + S₋₊)/2
-function S₊₋(pspace::GradedSpace)
+const S₊₋ = let
     aspace = Rep[U₁](1 => 1)
     S₊ = TensorMap(ones, pspace, pspace ⊗ aspace)
     S₋ = TensorMap(ones, aspace ⊗ pspace, pspace)
 
     @tensor S₊S₋[p1, p3; p2, p4] := S₊[p1, p2, a] * S₋[a, p3, p4]
-    return S₊S₋
+    S₊S₋
 end
 
-function S₋₊(pspace::GradedSpace)
+const S₋₊ = let
     aspace = Rep[U₁](1 => 1)
     iso = isometry(aspace, flip(aspace))
     Sp = TensorMap(ones, pspace, pspace ⊗ aspace)
@@ -25,13 +31,16 @@ function S₋₊(pspace::GradedSpace)
     @tensor S₊[d a; c] := Sm'[a, b, c] * iso[b, d]
 
     @tensor S₋S₊[p1, p3; p2, p4] := S₋[p1, p2, a] * S₊[a, p3, p4]
-    return S₋S₊
+    S₋S₊
 end
+
+end
+
+const U₁spin = U1spin
 
 function Heisenberg_hij(para::Dict{Symbol,Any})
     J = para[:J]
-    pspace = para[:pspace]
-    ss = Sz(pspace) ⊗ Sz(pspace) + (S₊₋(pspace) + S₋₊(pspace)) / 2
+    ss = U1spin.Sz ⊗ U1spin.Sz + (U1spin.S₊₋ + U1spin.S₋₊) / 2
     gate = J * ss
     return [gate]
 end
@@ -39,8 +48,7 @@ end
 function J1J2_Heisenberg_hij(para::Dict{Symbol,Any})
     J1 = para[:J1]
     J2 = para[:J2]
-    pspace = para[:pspace]
-    ss = Sz(pspace) ⊗ Sz(pspace) + (S₊₋(pspace) + S₋₊(pspace)) / 2
+    ss = U1spin.Sz ⊗ U1spin.Sz + (U1spin.S₊₋ + U1spin.S₋₊) / 2
     gateNN = J1 * ss
     gateNNN = J2 * ss
     return [gateNN, gateNNN]
@@ -54,11 +62,11 @@ function get_op_Heisenberg(tag::String, para::Dict{Symbol,Any})
     elseif tag == "hijNNN"
         return J1J2_Heisenberg_hij(para)[2]
     elseif tag == "Sz"
-        return Sz(para[:pspace])
+        return U1spin.Sz
     elseif tag == "SzSz"
-        return Sz(para[:pspace]) ⊗ Sz(para[:pspace])
+        return U1spin.Sz ⊗ U1spin.Sz
     elseif tag == "SpSm"
-        return S₊₋(para[:pspace])
+        return U1spin.S₊₋
     else
         error("Unsupported tag. Check input tag or add this operator.")
     end
