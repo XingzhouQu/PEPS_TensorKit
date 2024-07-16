@@ -145,14 +145,16 @@ function tJ_hij(para::Dict{Symbol,Any})
     gateNN = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + J * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn) -
              (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn) - (h / 4) * (OpSz ⊗ OpI + OpI ⊗ OpSz)
     gateNNN = -tp * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + Jp * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn)
-    return [gateNN, gateNNN]
+    return gateNN, gateNNN
 end
 
 function get_op_tJ(tag::String, para::Dict{Symbol,Any})
     if tag == "hijNN"
-        return tJ_hij(para)[1]
+        tmp = tJ_hij(para)
+        return tmp[1]
     elseif tag == "hijNNN"
-        return tJ_hij(para)[2]
+        tmp = tJ_hij(para)
+        return tmp[2]
     elseif tag == "CdagCup"
         Fdag, F = Z2tJFermion.FdagF₊
         OpZ = Z2tJFermion.Z

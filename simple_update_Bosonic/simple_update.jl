@@ -67,7 +67,7 @@ function get_gates(hams::Vector{T}, τ::Number; TrotterOrder=1) where {T<:Tensor
 end
 
 
-function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Vector{TensorMap}; verbose=1, TrotterOrder=1)
+function simple_update_1step!(ipeps::iPEPSΓΛ, Dk::Int, gates::Tuple{TensorMap}; verbose=1, TrotterOrder=1)
     Lx = ipeps.Lx::Int
     Ly = ipeps.Ly::Int
     errlis = Vector{Float64}(undef, 2 * length(gates) * TrotterOrder * Lx * Ly)  # 总的 bond 数
