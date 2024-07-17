@@ -1,4 +1,5 @@
 import Base.getindex
+using ChainRulesCore: ignore_derivatives
 
 """
 Convention: s1 and s2 are spaces to be swap.
@@ -9,17 +10,19 @@ Return space: (s1, s2) ← (s1, s2)
 """
 function swap_gate(s1::T, s2::T; Eltype=Float64) where {T<:ElementarySpace}
     @assert sectortype(s1) == sectortype(s2) "Input spaces should have same sectortype."
-    # -----------得到sector type------------------
-    rep = collect(sectors(s1))[1]
-    reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
-    # -------------------------------------------
     tmp1 = isometry(s1, s1)
     tmp2 = isometry(s2, s2)
     gate = tmp1 ⊗ tmp2
-    for (f1, f2) in fusiontrees(gate)
-        # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
-        # 为了类型稳定，不需要改动的也乘一个1 ？
-        isoddParity(f1, reptype) ? (gate[f1, f2] *= -one(Eltype)) : (gate[f1, f2] *= one(Eltype))
+    ignore_derivatives() do
+        # -----------得到sector type------------------
+        rep = collect(sectors(s1))[1]
+        reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
+        # -------------------------------------------
+        for (f1, f2) in fusiontrees(gate)
+            # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
+            # 为了类型稳定，不需要改动的也乘一个1 ？
+            isoddParity(f1, reptype) ? (gate[f1, f2] *= -one(Eltype)) : (gate[f1, f2] *= one(Eltype))
+        end
     end
     return gate
 end
@@ -33,23 +36,11 @@ function isoddParity(f::FusionTree, reptype::T) where {T<:Union{Type{U1Irrep},Ty
     s1 = f.uncoupled[1]
     s2 = f.uncoupled[2]
     if reptype == U1Irrep
-        if isodd(s1[1].charge) && isodd(s2[1].charge)
-            return true
-        else
-            return false
-        end
+        return isodd(s1[1].charge) && isodd(s2[1].charge)
     elseif reptype == Z2Irrep
-        if isodd(s1[1].n) && isodd(s2[1].n)
-            return true
-        else
-            return false
-        end
+        return isodd(s1[1].n) && isodd(s2[1].n)
     elseif reptype == SU2Irrep  # 这里不知道对不对？
-        if isodd(s1[1].j * 2) && isodd(s2[1].j * 2)
-            return true
-        else
-            return false
-        end
+        return isodd(s1[1].j * 2) && isodd(s2[1].j * 2)
     else
         error("Not supported charge symmetry")
     end

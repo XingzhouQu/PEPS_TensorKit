@@ -54,7 +54,7 @@ end
 
 
 function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
-    site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag = false)
+    site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
     x1, y1 = site1
     x2, y2 = site2
     M1 = ipeps[x1, y1]
@@ -86,7 +86,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
             envs[x2, y2].corner.rt[rt2t2, rt2r] * swgater4[b22Dup, r2Ddn, b22Dupin, r2Ddnin] *
             envs[x2, y2].transfer.r[r2Dup, r2Ddn, rt2r, rb2r] * envs[x2, y2].corner.rb[rb2b2, rb2r]
         @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] := leftpart[pup1, Dupin, t12t2, pdn1, Ddnin, b12b2] * rightpart[pup2, t12t2, Dupin, pdn2, Ddnin, b12b2]
-        ignore_derivatives() do 
+        ignore_derivatives() do
             leftpart, rightpart = nothing, nothing
             for ii in 1:4
                 eval(Meta.parse("swgatel$ii, swgater$ii = nothing, nothing"))
@@ -118,7 +118,7 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
             swgateb4[r22Ddn, b2Dup, r22Ddnin, b2Dupin] * envs[x2, y2].transfer.r[r22Dup, r22Ddn, r12r2, rb2r2] *
             envs[x2, y2].transfer.b[lb2b, b2Dup, b2Ddn, rb2b] * envs[x2, y2].corner.rb[rb2b, rb2r2]
         @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] := toppart[pup1, Dupin, l12l2; pdn1, Ddnin, r12r2] * bottompart[pup2, Dupin, l12l2; pdn2, Ddnin, r12r2]
-        ignore_derivatives() do 
+        ignore_derivatives() do
             toppart, bottompart = nothing, nothing
             for ii in 1:4
                 eval(Meta.parse("swgatet$ii, swgateb$ii = nothing, nothing"))
@@ -152,7 +152,7 @@ end
 # or: (1) auxsite    (2) site1
 #     (3) site2      (4) auxsite
 function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
-    site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag = false)
+    site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     x1, y1 = site1
@@ -193,7 +193,7 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         @tensor opt = true ψ□ψ[pup1, pup4; pdn1, pdn4] :=
             QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
-        ignore_derivatives() do 
+        ignore_derivatives() do
             QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
             for ii in 1:6
                 eval(Meta.parse("swgatelt$ii, swgaterb$ii = nothing, nothing"))
@@ -233,7 +233,7 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         @tensor opt = true ψ□ψ[pup2, pup3; pdn2, pdn3] :=
             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
-        ignore_derivatives() do 
+        ignore_derivatives() do
             QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
             for ii in 1:6
                 eval(Meta.parse("swgatelb$ii, swgatert$ii = nothing, nothing"))

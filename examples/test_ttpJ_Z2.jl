@@ -28,11 +28,11 @@ function main()
     para[:J] = 1.0
     para[:Jp] = 0.0289
     para[:h] = 0.6
-    para[:μ] = 5.4  # set μ = 5.2,  n = 0.89986
+    para[:μ] = 5.5  # set μ = 5.2,  n = 0.89986
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 50   # 对每个虚时步长 τ , 最少投影这么多步
-    para[:maxStep1τ] = 1000  # 对每个虚时步长 τ , 最多投影这么多步
+    para[:maxStep1τ] = 500  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
@@ -40,7 +40,7 @@ function main()
     para[:CTMit] = 30  # Maximum CTMRG iteration times
     para[:CTMparallel] = true  # use parallel CTMRG or not. Use with MKL.
     para[:CTMthreshold] = 1e-12
-    para[:Etol] = 1e-6  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
+    para[:Etol] = 1e-3  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
     para[:verbose] = 1
     para[:TrotterOrder] = 2 # 用几阶Trotter分解,设为1或2
     para[:pspace] = Rep[ℤ₂](0 => 1, 1 => 2)

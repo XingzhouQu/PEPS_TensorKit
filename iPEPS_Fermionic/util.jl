@@ -2,6 +2,7 @@ using LinearAlgebra
 using Statistics
 import TensorKit.normalize!
 using JLD2
+using Zygote: Buffer
 import JLD2.save
 
 # Save and load ipeps and envs follow the JLD2.jl convention.
@@ -150,11 +151,14 @@ function bar(M::TensorMap)::TensorMap
 end
 
 function bar(ipeps::iPEPS)::iPEPS
-     ipepsbar = deepcopy(ipeps)
-     for xx in 1:ipeps.Lx, yy in 1:ipeps.Ly
-          ipepsbar[xx, yy] = bar(ipeps[xx, yy])
+     # 为了适应自动微分框架，这里用缓冲区构造 dagger state.
+     Lx = ipeps.Lx
+     Ly = ipeps.Ly
+     Msnew = Buffer(Matrix{TensorMap}(undef, Lx, Ly))
+     for xx in 1:Lx, yy in 1:Ly
+          Msnew[xx, yy] = bar(ipeps[xx, yy])
      end
-     return ipepsbar
+     return iPEPS(copy(Msnew), Lx, Ly)
 end
 
 # ================ Debug functions ==========================

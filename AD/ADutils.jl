@@ -22,8 +22,6 @@ function loss_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, CTMRG::Func
     # 求梯度. 以下符号简记：A → ipeps张量，e → ipeps环境张量，ε → 求能量的函数，c → CMTRG函数
 
     E, grad = withgradient(ipeps, envs) do peps, env
-        get_op = ignore_derivatives(get_op)
-        para = ignore_derivatives(para)
         Cal_Energy(peps, env, get_op, para)
     end
     ∂ε_∂A, ∂ε_∂e = grad
@@ -48,15 +46,15 @@ function Cal_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, para::Dict{S
     # 初始化
     Lx = ipeps.Lx::Int
     Ly = ipeps.Ly::Int
-    ipepsbar = ipeps |> bar |> ignore_derivatives
+    # ipepsbar = ipeps |> bar |> ignore_derivatives
 
     # 算能量
     Etot = 0.0
     for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
-        Ebond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
+        Ebond = _2siteObs_adjSite(ipeps, ignore_derivatives(bar(ipeps)), envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
         Etot += Ebond
-        Ebond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
+        Ebond = _2siteObs_adjSite(ipeps, ignore_derivatives(bar(ipeps)), envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
         Etot += Ebond
     end
     E = Etot / (Lx * Ly)  # TODO 这里的能量暂时没有扣除化学势的贡献，这样做对吗？
