@@ -13,7 +13,7 @@ struct iPEPS
         Ms = reshape(Ms, (Lx, Ly))
         return new(Ms, Lx, Ly)
     end
-    function iPEPS(Ms::Matrix{TensorMap}, Lx::Int, Ly::Int)
+    function iPEPS(Ms::Matrix{T}, Lx::Int, Ly::Int) where {T<:TensorMap}
         return new(Ms, Lx, Ly)
     end
 end

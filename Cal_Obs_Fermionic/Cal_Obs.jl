@@ -55,6 +55,7 @@ end
 
 function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
+    ADflag ? ipepsbar = ignore_derivatives(ipepsbar) : nothing
     x1, y1 = site1
     x2, y2 = site2
     M1 = ipeps[x1, y1]
@@ -153,6 +154,7 @@ end
 #     (3) site2      (4) auxsite
 function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
+    ADflag ? ipepsbar = ignore_derivatives(ipepsbar) : nothing
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     x1, y1 = site1
