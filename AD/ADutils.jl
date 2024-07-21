@@ -50,9 +50,9 @@ function Cal_Energy(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, get_op::Funct
     Etot = 0.0
     for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
-        Ebond2 = _2siteObs_adjSite(ipeps, ignore_derivatives(ipepsbar), envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
+        Ebond2 = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
         Etot += Ebond2
-        Ebond = _2siteObs_adjSite(ipeps, ignore_derivatives(ipepsbar), envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
+        Ebond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
         Etot += Ebond
     end
     E = Etot / (Lx * Ly)  # TODO 这里的能量暂时没有扣除化学势的贡献，这样做对吗？
