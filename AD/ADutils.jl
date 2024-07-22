@@ -2,7 +2,6 @@ using Zygote
 using ChainRulesCore: ignore_derivatives
 using OptimKit
 
-include("./def_adjoints.jl")
 """
 OptimKit.jl usage:
 
@@ -42,19 +41,18 @@ function loss_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, CTMRG::Func
 end
 
 
-function Cal_Energy(ipeps::iPEPS, envs::iPEPSenv, get_op::Function, para::Dict{Symbol,Any})
+function Cal_Energy(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, get_op::Function, para::Dict{Symbol,Any})
     # 初始化
     Lx = ipeps.Lx::Int
     Ly = ipeps.Ly::Int
-    # ipepsbar = ipeps |> bar |> ignore_derivatives
 
     # 算能量
     Etot = 0.0
     for ind in CartesianIndices((Lx, Ly))
         (xx, yy) = Tuple(ind)
-        Ebond = _2siteObs_adjSite(ipeps, ignore_derivatives(bar(ipeps)), envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
-        Etot += Ebond
-        Ebond = _2siteObs_adjSite(ipeps, ignore_derivatives(bar(ipeps)), envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
+        Ebond2 = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx + 1, yy], get_op; ADflag=true)
+        Etot += Ebond2
+        Ebond = _2siteObs_adjSite(ipeps, ipepsbar, envs, ["hijNN"], para, [xx, yy], [xx, yy + 1], get_op; ADflag=true)
         Etot += Ebond
     end
     E = Etot / (Lx * Ly)  # TODO 这里的能量暂时没有扣除化学势的贡献，这样做对吗？
@@ -86,3 +84,5 @@ function Non_mutating_Wrapper_CTM(ipeps::iPEPS, envs::iPEPSenv, para::Dict{Symbo
     CTMRG!(ipeps::iPEPS, envs::iPEPSenv, para[:χ], para[:Nit]; parallel=false)
     return envs
 end
+
+include("./def_adjoints.jl")
