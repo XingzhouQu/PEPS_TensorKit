@@ -17,7 +17,7 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[(toX, pl, pr); (toY)] := vl[toX, plin, toV] * ipeps[xx, yy].r[toV, toW] * gateNN[pl, pr, plin, prin] *
                                          wr[toW, prin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=TensorKit.SVD())
     # 计入第二个交换门，把物理指标换回去
     swgate2 = swap_gate(space(Xl)[3], space(vnew)[2]; Eltype=eltype(vnew))
     @tensor Γlnew[l, t, p; r, b] := Xl[le, te, bein, toX] * vnew[toX, pin, r] * swgate2[be, p, bein, pin] *
@@ -51,7 +51,7 @@ function bond_proj_tb!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[toX, pu, pd; toY] := vu[toX, puin, toV] * ipeps[xx, yy].b[toV, toW] * gateNN[pu, pd, puin, pdin] *
                                      wd[toW, pdin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=TensorKit.SVD())
     # 计入第二个交换门，把物理指标换回去
     swgate2 = swap_gate(space(Yd)[2], space(wnew)[2]; Eltype=eltype(wnew))
     @tensor Γdnew[l, t, p; r, b] := Yd[toY, lein, re, be] * wnew[t, pin, toY] * swgate2[le, p, lein, pin] *
@@ -134,12 +134,12 @@ function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         ipeps[xx+1, yy].t[t2, te2] * ipeps[xx+1, yy].r[re2, r2] * ipeps[xx+1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] *
         swgtmid1[pmidin2, pdin, pmidin, pdin2] * swgtmid2[pmid, pd, pmidin2, pd2] * gateNNN[pu, pd2, puin, pdin2]
     # 分出 [xx, yy] 点的 v1，并做截断和归一.
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx+1, yy] 点，并做截断和归一
     @tensor Θpp[l2, t2, pmid, r2; pd, toΓ3] := λ1p[l2, l2in] * Θp[l2in, t2, pmid, r2, pd, toΓ3]
-    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk))
+    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
@@ -225,12 +225,12 @@ function bond_proj_lu2rd_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         ipeps[xx, yy+1].l[l2, le2] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] *
         swgtmid2[r2, pd, r2in, pdp] * v3[r2in, pdin, toΓ3]
     # 分出 [xx, yy] 点的 v1，并做截断和归一.
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx, yy+1] 点，并做截断和归一
     @tensor Θpp[l2, t2, pmid, b2; pd, toΓ3] := λ1p[t2, t2in] * Θp[t2in, l2, pmid, b2, pd, toΓ3]
-    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk))
+    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
@@ -310,7 +310,7 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     λ1p = λ1p / nrm1
     # 分出 [xx-1, yy] 点，并做截断和归一
     @tensor Θpp[l2, t2, pmid, r2; pd, toΓ3] := Θp[pd, toΓ3, l2, t2, pmid, r2in] * λ1p[r2in, r2]
-    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk))
+    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
@@ -395,7 +395,7 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
     λ1p = λ1p / nrm1
     # 分出 [xx, yy+1] 点，并做截断和归一
     @tensor Θpp[toΓ3, pd; t2, pmid, r2, b2] := λ1p[t2, t2in] * Θp[t2in, toΓ3, pd, pmid, r2, b2]
-    v3new, λ2p, Γ2p, err2 = tsvd(Θpp, ((1, 2), (3, 4, 5, 6)); trunc=truncdim(Dk))
+    v3new, λ2p, Γ2p, err2 = tsvd(Θpp, ((1, 2), (3, 4, 5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.

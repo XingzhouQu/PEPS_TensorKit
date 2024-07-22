@@ -13,7 +13,7 @@ function bond_proj_lr!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[(toX, pl, pr); (toY)] := vl[toX, plin, toV] * ipeps[xx, yy].r[toV, toW] * gateNN[pl, pr, plin, prin] *
                                          wr[toW, prin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=TensorKit.SVD())
     @tensor Γlnew[l, t, p; r, b] := Xl[le, te, be, toX] * vnew[toX, p, r] *
                                     inv(ipeps[xx, yy].l)[l, le] * inv(ipeps[xx, yy].t)[t, te] * inv(ipeps[xx, yy].b)[be, b]
     @tensor Γrnew[l, t, p; r, b] := wnew[l, p, toY] * Yr[toY, te, re, be] * inv(ipeps[xx+1, yy].t)[t, te] *
@@ -41,7 +41,7 @@ function bond_proj_tb!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, gateNN::Tens
     # 作用 Trotter Gate
     @tensor mid[toX, pu, pd; toY] := vu[toX, puin, toV] * ipeps[xx, yy].b[toV, toW] * gateNN[pu, pd, puin, pdin] *
                                      wd[toW, pdin, toY]
-    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk))
+    vnew, λnew, wnew, err = tsvd(mid, (1, 2), (3, 4); trunc=truncdim(Dk), alg=TensorKit.SVD())
     @tensor Γdnew[l, t, p; r, b] := Yd[toY, le, re, be] * wnew[t, p, toY] *
                                     inv(ipeps[xx, yy+1].l)[l, le] * inv(ipeps[xx, yy+1].r)[re, r] * inv(ipeps[xx, yy+1].b)[be, b]
     @tensor Γunew[l, t, p; r, b] := vnew[toX, p, b] * Xu[le, te, re, toX] * inv(ipeps[xx, yy].t)[t, te] *
@@ -113,12 +113,12 @@ function bond_proj_lu2rd_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[toΓ1, puin, re1] * ipeps[xx, yy].r[re1, r1] * ipeps[xx+1, yy].Γ[r1, te2, pmid, re2, be2] *
         ipeps[xx+1, yy].t[t2, te2] * ipeps[xx+1, yy].r[re2, r2] * ipeps[xx+1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx+1, yy] 点，并做截断和归一
     @tensor Θpp[l2, t2, pmid, r2; pd, toΓ3] := λ1p[l2, l2in] * Θp[l2in, t2, pmid, r2, pd, toΓ3]
-    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk))
+    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
@@ -186,7 +186,7 @@ function bond_proj_lu2rd_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[toΓ1, puin, be1] * ipeps[xx, yy].b[be1, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] *
         ipeps[xx, yy+1].l[l2, le2] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[r2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx, yy+1] 点，并做截断和归一
@@ -261,12 +261,12 @@ function bond_proj_ru2ld_upPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[le1, puin, toΓ1] * ipeps[xx, yy].l[l1, le1] * ipeps[xx-1, yy].Γ[le2, te2, pmid, l1, be2] *
         ipeps[xx-1, yy].l[l2, le2] * ipeps[xx-1, yy].t[t2, te2] * ipeps[xx-1, yy].b[be2, b2] * v3[b2, pdin, toΓ3] * gateNNN[pu, pd, puin, pdin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
-    Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk))
+    Θp, λ1p, v1new, err1 = tsvd(Θ, ((1, 2, 3, 4, 5), (6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx-1, yy] 点，并做截断和归一
     @tensor Θpp[l2, t2, pmid, r2; pd, toΓ3] := Θp[pd, toΓ3, l2, t2, pmid, r2in] * λ1p[r2in, r2]
-    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk))
+    Γ2p, λ2p, v3new, err2 = tsvd(Θpp, ((1, 2, 3, 4), (5, 6)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm2 = norm(λ2p)
     λ2p = λ2p / nrm2
     # 恢复原来的张量及其指标顺序.
@@ -336,7 +336,7 @@ function bond_proj_ru2ld_dnPath!(ipeps::iPEPSΓΛ, xx::Int, yy::Int, Dk::Int, ga
         v1[toΓ1, puin, b1in] * ipeps[xx, yy].b[b1in, b1] * ipeps[xx, yy+1].Γ[le2, b1, pmid, re2, be2] *
         ipeps[xx, yy+1].l[l2, le2] * ipeps[xx, yy+1].r[re2, r2] * ipeps[xx, yy+1].b[be2, b2] * v3[toΓ3, pdin, l2] * gateNNN[pu, pd, puin, pdin]
     # 分出 [xx, yy] 点的 v1，并做截断和归一. 注意这里最好的做法是先不做截断直接乘进去，求出 θ''后再截断. 因此下面的做法是有些近似的
-    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk))
+    v1new, λ1p, Θp, err1 = tsvd(Θ, ((1, 2), (3, 4, 5, 6, 7)); trunc=truncdim(Dk), alg=TensorKit.SVD())
     nrm1 = norm(λ1p)
     λ1p = λ1p / nrm1
     # 分出 [xx, yy+1] 点，并做截断和归一
