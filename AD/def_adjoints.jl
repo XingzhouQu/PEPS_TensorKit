@@ -1,5 +1,7 @@
 using ChainRulesCore
 
+
+ChainRulesCore.@non_differentiable TensorKit.SortedVectorDict()
 """
 Custom Gradient: Use Zygote.@adjoint to specify how to compute the gradient of f(x) = x^3 manually.
 
@@ -44,8 +46,9 @@ function ChainRulesCore.rrule(::typeof(_2siteObs_adjSite), ipeps::iPEPS, ipepsba
         # The struct ipeps::iPEPS gets a Tangent{iPEPS} structural tangent, which stores the tangents of fields of ipeps.
         #     The tangent of the field Ms is specified,
         #     The tangent of the field Lx and Ly are NoTangent(), because they can not be perturbed, either.
-        ipeps̄ = Tangent{iPEPS}(; Ms = ȳ * MsTangent_adj(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op; ADflag=true), 
-                Lx = NoTangent(), Ly = NoTangent()) |> canonicalize
+        ipeps̄ = iPEPS(ȳ .* MsTangent_adj(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op; ADflag=true), Lx, Ly)
+        @show typeof(ipeps̄)
+        @show typeof(ȳ)
         # envs̄ = Tangent{iPEPSenv}(; Envs=EnvsTangent_adj(args...), Lx=NoTangent(), Ly=NoTangent())
         
         return f̄, ipeps̄
