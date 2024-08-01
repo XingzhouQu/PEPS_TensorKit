@@ -9,7 +9,6 @@ struct iPEPS
     Ly::Int
     # 按列初始化
     function iPEPS(Ms::AbstractVector{T}, Lx::Int, Ly::Int) where {T}
-        println("Initializing iPEPS with eltype $(mapreduce(eltype, promote_type, storagetype.(Ms)))")
         Ms = reshape(Ms, (Lx, Ly))
         return new(Ms, Lx, Ly)
     end
