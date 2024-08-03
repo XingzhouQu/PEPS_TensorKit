@@ -23,21 +23,21 @@ function main()
     # ipepsγλ, para_not = load("/home/tcmp2/JuliaProjects/tJZ2_Lx4Ly4_t3.0t'0.51J1.0J'0.0289h0.6mu5.5_ipeps_D8.jld2", "ipeps", "para")
 
     para = Dict{Symbol,Any}()
-    para[:t] = 0.1
-    para[:tp] = 3.0
+    para[:t] = 3.0
+    para[:tp] = -3.0
     para[:J] = 1.0
-    para[:Jp] = 0.0  # not used now. Keep zero
-    para[:μ] = 2.0  # set μ = 5.2,  n = 0.89986
-    para[:h] = 0.0
+    para[:Jp] = 0.5  # not used now. Keep zero
+    para[:V] = 0.0  # NN repusion
+    para[:μ] = 5.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 10   # 对每个虚时步长 τ , 最少投影这么多步
     para[:maxStep1τ] = 2000  # 对每个虚时步长 τ , 最多投影这么多步
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
-    para[:Dk] = 8  # Dkept in the simple udate
-    para[:χ] = 120  # env bond dimension
-    para[:CTMit] = 30  # Maximum CTMRG iteration times
+    para[:Dk] = 6  # Dkept in the simple udate
+    para[:χ] = 130  # env bond dimension
+    para[:CTMit] = 100  # Maximum CTMRG iteration times
     para[:CTMparallel] = true  # use parallel CTMRG or not. Use with MKL.
     para[:CTMthreshold] = 1e-12
     para[:Etol] = 1e-5  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
@@ -54,7 +54,7 @@ function main()
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, tJ_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
     # ipepsγλ, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
 
     # 转换为正常形式, 做 fast full update
@@ -69,7 +69,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel], threshold=para[:CTMthreshold])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
@@ -92,7 +92,7 @@ function main()
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_tJ)
         @show (xx, yy, Obs1si)
         filling += get(Obs1si, "N", NaN)
-        magnetization += abs(get(Obs1si, "Sz", NaN))
+        magnetization += get(Obs1si, "Sz", NaN)
         rslt1s[ind] = Obs1si
 
         Obs2si_h = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_tJ)
@@ -118,7 +118,7 @@ function main()
     @show Eg
 
     # =================== save Obs to file ================================
-    Obsname = joinpath("/home/tcmp2/JuliaProjects/", "tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ])_Obs.h5")
+    Obsname = joinpath("/home/tcmp2/JuliaProjects/", "tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ])_Obs.h5")
     f = h5open(Obsname, "w")
     T = eltype(ipeps[1, 1])
     try
