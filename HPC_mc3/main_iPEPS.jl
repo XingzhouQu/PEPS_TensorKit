@@ -9,15 +9,15 @@ using Strided, FLoops
 
 include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/iPEPS_Fermionic/iPEPS.jl")
 include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/CTMRG_Fermionic/CTMRG.jl")
-include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/models/tJ_Z2.jl")
+include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/models/tJ_Z2U1.jl")
 include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/simple_update_Fermionic/simple_update.jl")
 include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/fast_full_update_Fermionic/fast_full_update.jl")
 include("/public/home/users/ucas001c/xzqu/iPEPS_ttpJ/code/Cal_Obs_Fermionic/Cal_Obs.jl")
 
 function mainiPEPS(para)
     pspace = para[:pspace]
-    aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
-    aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
+    aspacelr = Rep[ℤ₂×U₁]((0, 0) => 1, (1, 1 / 2) => 2, (1, -1 / 2) => 2)
+    aspacetb = Rep[ℤ₂×U₁]((0, 0) => 1, (1, 1 / 2) => 2, (1, -1 / 2) => 2)
     Lx = para[:Lx]
     Ly = para[:Ly]
     if para[:useexist]
@@ -40,10 +40,6 @@ function mainiPEPS(para)
     @show space(ipeps[1, 1])
     ipepsbar = bar(ipeps)
     envs = iPEPSenv(ipeps)
-    # check_qn(ipeps, envs)
-    # CTMRG!(ipeps, ipepsbar, envs, para[:χ], 2)
-    # fast_full_update!(ipeps, envs, Hubbard_hij, para)
-    # check_qn(ipeps, envs)
 
     # 最后再做CTMRG
     println("============== CTMRG ====================")
@@ -58,8 +54,8 @@ function mainiPEPS(para)
     # 计算观测量
     println("============== Calculating Obs ====================")
     site1Obs = ["N", "Sz"]             # 计算这些单点观测量
-    site2Obs = ["hijNN", "SpSm", "SzSz", "NN", "Δₛ", "Δₛdag"]   # 计算这些两点观测量
-    site2Obsdiag = ["hijNNN", "SpSm", "SzSz", "NN"]
+    site2Obs = ["hijNN", "SpSm", "SzSz", "NN", "Δₛ", "Δₛdag", "Δₜupdn", "Δₜdagupdn"]   # 计算这些两点观测量
+    site2Obsdiag = ["hijNNN", "SpSm", "SzSz", "NN", "Δₛ", "Δₛdag", "Δₜupdn", "Δₜdagupdn"]
 
     rslt1s = Vector{Dict}(undef, Lx * Ly)
     rslt2s_h = Vector{Dict}(undef, Lx * Ly)
@@ -72,7 +68,7 @@ function mainiPEPS(para)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_tJ)
         @show (xx, yy, Obs1si)
         @reduce filling += get(Obs1si, "N", NaN)
-        @reduce magnetization += abs(get(Obs1si, "Sz", NaN))
+        @reduce magnetization += get(Obs1si, "Sz", NaN)
         rslt1s[ind] = Obs1si
 
         Obs2si_h = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_tJ)

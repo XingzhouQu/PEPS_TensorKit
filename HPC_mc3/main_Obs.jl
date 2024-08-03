@@ -36,7 +36,7 @@ function mainObs(para)
         Obs1si = Cal_Obs_1site(ipeps, ipepsbar, envs, site1Obs, para; site=[xx, yy], get_op=get_op_tJ)
         @show (xx, yy, Obs1si)
         @reduce filling += get(Obs1si, "N", NaN)
-        @reduce magnetization += abs(get(Obs1si, "Sz", NaN))
+        @reduce magnetization += get(Obs1si, "Sz", NaN)
         rslt1s[ind] = Obs1si
 
         Obs2si_h = Cal_Obs_2site(ipeps, ipepsbar, envs, site2Obs, para; site1=[xx, yy], site2=[xx + 1, yy], get_op=get_op_tJ)

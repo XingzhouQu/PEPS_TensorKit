@@ -65,7 +65,7 @@ const Δₛ = let
     C, D
 end
 
-function Δₛdag = let
+const Δₛdag = let
     A = Z2SU2Fermion.FdagF[1]
     aspace = Rep[ℤ₂×SU₂]((1, 1 // 2) => 1)
     iso = isometry(aspace, flip(aspace)) / sqrt(2)
