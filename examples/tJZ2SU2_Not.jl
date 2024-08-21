@@ -24,9 +24,9 @@ function main()
 
     para = Dict{Symbol,Any}()
     para[:t] = 3.0
-    para[:tp] = -3.0
+    para[:tp] = 3.0
     para[:J] = 1.0
-    para[:Jp] = 0.5  # not used now. Keep zero
+    para[:Jp] = 0.0  # not used now. Keep zero
     para[:V] = 0.0  # NN repusion
     para[:μ] = 5.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
@@ -51,10 +51,13 @@ function main()
 
     Lx = 2
     Ly = 2
+    # Dir on Window 
+    dir = "D:/iPEPS_projects/t_tp_J_mag/data/tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_D$(para[:Dk])chi$(para[:χ])CTMit$(para[:CTMit])/"
+    mkdir(dir)
     # simple update
     ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
     simple_update!(ipepsγλ, tJ_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
     # ipepsγλ, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
 
     # 转换为正常形式, 做 fast full update
@@ -69,7 +72,7 @@ function main()
 
     # 最后再做CTMRG
     CTMRG!(ipeps, ipepsbar, envs, para[:χ], para[:CTMit]; parallel=para[:CTMparallel], threshold=para[:CTMthreshold])
-    save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
+    # save(ipeps, envs, para, "/home/tcmp2/JuliaProjects/tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ]).jld2")
     GC.gc()
     # 计算观测量
     println("============== Calculating Obs ====================")
@@ -118,7 +121,8 @@ function main()
     @show Eg
 
     # =================== save Obs to file ================================
-    Obsname = joinpath("/home/tcmp2/JuliaProjects/", "tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ])_Obs.h5")
+    # Obsname = joinpath("/home/tcmp2/JuliaProjects/", "tJZ2SU2_Lx$(Lx)Ly$(Ly)_SU_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])V$(para[:V])mu$(para[:μ])_ipepsEnv_D$(para[:Dk])chi$(para[:χ])_Obs.h5")
+    Obsname = joinpath(dir, "Obs.h5")
     f = h5open(Obsname, "w")
     T = eltype(ipeps[1, 1])
     try

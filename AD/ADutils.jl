@@ -1,7 +1,11 @@
 using Zygote
-using ChainRulesCore: ignore_derivatives
 using OptimKit
+using TensorKit, TensorOperations, KrylovKit
+using ChainRulesCore, TupleTools, LinearAlgebra, ChainRules
+using ChainRulesCore: ignore_derivatives
+using ChainRulesCore: @non_differentiable
 
+include("from_TensorKitAD.jl")
 """
 OptimKit.jl usage:
 
