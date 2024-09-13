@@ -165,9 +165,9 @@ function tJ_hij(para::Dict{Symbol,Any})
     @tensor smsp[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
 
     # 这里单点项要➗4
-    gateNN = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + J * (OpSz ⊗ OpSz + (spsm + smsp) / 2) -
+    gateNN = -t * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + J * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn) -
              (μ / 4) * (Opn ⊗ OpI + OpI ⊗ Opn)
-    gateNNN = -tp * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) #+ Jp * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn)
+    gateNNN = -tp * (fdagf₊ - ffdag₊ + fdagf₋ - ffdag₋) + Jp * (OpSz ⊗ OpSz + (spsm + smsp) / 2 - 0.25 * Opn ⊗ Opn)
     return gateNN, gateNNN
 end
 

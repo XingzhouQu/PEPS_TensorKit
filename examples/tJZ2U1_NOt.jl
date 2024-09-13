@@ -26,8 +26,8 @@ function main()
     para[:t] = 0.5
     para[:tp] = -3.0
     para[:J] = 1.0
-    para[:Jp] = 0.0  # not used now. Keep zero
-    para[:μ] = 3.0  # set μ = 5.2,  n = 0.89986
+    para[:Jp] = 0.5  # not used now. Keep zero
+    para[:μ] = 1.5
     para[:h] = 0.0
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:τlisFFU] = [0.01, 0.005, 0.001, 0.0001]
@@ -36,8 +36,8 @@ function main()
     para[:maxiterFFU] = 60
     para[:tolFFU] = 1e-10  # FFU 中损失函数的 Tolerence
     para[:Dk] = 6  # Dkept in the simple udate
-    para[:χ] = 130  # env bond dimension
-    para[:CTMit] = 100  # Maximum CTMRG iteration times
+    para[:χ] = 350  # env bond dimension
+    para[:CTMit] = 200  # Maximum CTMRG iteration times
     para[:CTMparallel] = true  # use parallel CTMRG or not. Use with MKL.
     para[:CTMthreshold] = 1e-12
     para[:Etol] = 1e-5  # simple update 能量差小于 para[:Etol]*τ² 这个数就可以继续增大步长. 1e-5对小size
@@ -53,21 +53,14 @@ function main()
     # pspace = Rep[ℤ₂](0 => 1, 1 => 2)
     # aspacelr = Rep[ℤ₂](0 => 1, 1 => 2)
     # aspacetb = Rep[ℤ₂](0 => 1, 1 => 2)
-    Lx = 2
+    Lx = 4
     Ly = 2
-    # # 决定初态每条腿的量子数
-    # aspacel = Matrix{GradedSpace}(undef, Lx, Ly)
-    # aspacet = Matrix{GradedSpace}(undef, Lx, Ly)
-    # aspacer = Matrix{GradedSpace}(undef, Lx, Ly)
-    # aspaceb = Matrix{GradedSpace}(undef, Lx, Ly)
-    # # TODO: 合理选择每条腿的量子数，达到固定的掺杂
-    # ipepsγλ = iPEPSΓΛ(pspace, aspacel, aspacet, aspacer, aspaceb, Lx, Ly; dtype=Float64)
 
     # simple update
-    ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
-    simple_update!(ipepsγλ, tJ_hij, para)
-    save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2U1_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
-    # ipepsγλ, para = load("/home/tcmp2/JuliaProjects/tJZ2_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
+    # ipepsγλ = iPEPSΓΛ(pspace, aspacelr, aspacetb, Lx, Ly; dtype=Float64)
+    # simple_update!(ipepsγλ, tJ_hij, para)
+    # save(ipepsγλ, para, "/home/tcmp2/JuliaProjects/tJZ2U1_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2")
+    ipepsγλ, _ = load("/home/tcmp2/JuliaProjects/tJZ2U1_Lx$(Lx)Ly$(Ly)_t$(para[:t])tp$(para[:tp])J$(para[:J])Jp$(para[:Jp])mu$(para[:μ])_ipeps_D$(para[:Dk]).jld2", "ipeps", "para")
 
     # 转换为正常形式, 做 fast full update
     ipeps = iPEPS(ipepsγλ)
