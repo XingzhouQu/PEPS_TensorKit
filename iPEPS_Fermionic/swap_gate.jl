@@ -1,5 +1,5 @@
 import Base.getindex
-using ChainRulesCore: ignore_derivatives
+# using ChainRulesCore: ignore_derivatives
 
 """
 Convention: s1 and s2 are spaces to be swap.
@@ -13,17 +13,17 @@ function swap_gate(s1::T, s2::T; Eltype=Float64) where {T<:ElementarySpace}
     tmp1 = isometry(s1, s1)
     tmp2 = isometry(s2, s2)
     gate = tmp1 ⊗ tmp2
-    ignore_derivatives() do
-        # -----------得到sector type------------------
-        rep = collect(sectors(s1))[1]
-        reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
-        # -------------------------------------------
-        for (f1, f2) in fusiontrees(gate)
-            # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
-            # 为了类型稳定，不需要改动的也乘一个1 ？
-            isoddParity(f1, reptype) ? (gate[f1, f2] *= -one(Eltype)) : (gate[f1, f2] *= one(Eltype))
-        end
+    # ignore_derivatives() do
+    # -----------得到sector type------------------
+    rep = collect(sectors(s1))[1]
+    reptype = typeof(rep[1])  # !! 约定 pspace 总是把电荷对称性放在自旋对称性前面, 如 U1charge × SU2spin
+    # -------------------------------------------
+    for (f1, f2) in fusiontrees(gate)
+        # @assert f1 == f2 "Fusion and splitting sectors should match in generating swap gates."
+        # 为了类型稳定，不需要改动的也乘一个1 ？
+        isoddParity(f1, reptype) ? (gate[f1, f2] *= -one(Eltype)) : (gate[f1, f2] *= one(Eltype))
     end
+    # end
     return gate
 end
 

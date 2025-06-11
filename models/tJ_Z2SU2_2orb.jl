@@ -339,8 +339,8 @@ const Δₛdagx = let
 end
 
 const Δₛx = let
-    A = FFdag[1]
-    B = FdagF[2]
+    A = FFdag1[1]
+    B = FdagF1[2]
     @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s1, s1in] * A[s1in, s1p, a] * B[a, s4, s4p] *
                               Id1[s2, s2p] * Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
     deltaS
@@ -355,8 +355,8 @@ const Δₛdagz = let
 end
 
 const Δₛz = let
-    A = FFdag[1]
-    B = FdagF[2]
+    A = FFdag1[1]
+    B = FdagF1[2]
     @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s2, s2in] * A[s2in, s2p, a] * B[a, s3, s3p] *
                               Id1[s1, s1p] * Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
     deltaS
@@ -376,9 +376,10 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
     tperp = para[:tperp]  # t⟂ for dz2
     Jc = para[:Jc]
     Jperp = para[:Jperp]  # J⟂ for dz2
+    JH = para[:JH]  # Hund's rule coupling
     V = para[:V]  # hybridization
-    εx = para[:μ]
-    εz = para[:μ]
+    εx = para[:εx]
+    εz = para[:εz]
 
     # intralayer xx hopping
     Fdagxup, Fxup = Z2SU2tJ2orb.FdagxupFxup
@@ -425,32 +426,45 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
     SLxdn, SRxdn = Z2SU2tJ2orb.SxdnSxdn
     @tensor SxdnSxdn[p1, p3; p2, p4] := SLxdn[p1, p2, a] * SRxdn[a, p3, p4]
 
+    SxupSzup = Z2SU2tJ2orb.SxupSzup
+    SxdnSzdn = Z2SU2tJ2orb.SxdnSzdn
+    FdagzupFzdn = Z2SU2tJ2orb.FdagzupFzdn
+    FzupFdagzdn = Z2SU2tJ2orb.FzupFdagzdn
+    SzupSzdn = Z2SU2tJ2orb.SzupSzdn
+    nzupnzdn = Z2SU2tJ2orb.nzupnzdn
+    nxup = Z2SU2tJ2orb.nxup
+    nxdn = Z2SU2tJ2orb.nxdn
+    nzup = Z2SU2tJ2orb.nzup
+    nzdn = Z2SU2tJ2orb.nzdn
+    Id = Z2SU2tJ2orb.Id
     # 这里单点项要➗4, 注意区分杂化x/y方向符号相反
     gateNNx = -tc * (fdagfxup - ffdagxup + fdagfxdn - ffdagxdn) +
               Jc * (SxupSxup - 0.25 * Z2SU2tJ2orb.nxup ⊗ Z2SU2tJ2orb.nxup + SxdnSxdn - 0.25 * Z2SU2tJ2orb.nxdn ⊗ Z2SU2tJ2orb.nxdn) +
               -td * (fdagfzup - ffdagzup + fdagfzdn - ffdagzdn) +
               -V * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn) +
-              -0.25 * tperp * (Z2SU2tJ2orb.FdagzupFzdn - Z2SU2tJ2orb.FzupFdagzdn) +
-              0.25 * Jperp * (Z2SU2tJ2orb.SzupSzdn - 0.25 * Z2SU2tJ2orb.nzupnzdn) +
-              0.25 * εx * (Z2SU2tJ2orb.nxup + Z2SU2tJ2orb.nxdn) +
-              0.25 * εz * (Z2SU2tJ2orb.nzup + Z2SU2tJ2orb.nzdn)
+              -0.25 * JH * ((SxupSzup + SxdnSzdn) ⊗ Id + Id ⊗ (SxupSzup + SxdnSzdn)) +
+              -0.25 * tperp * ((FdagzupFzdn - FzupFdagzdn) ⊗ Id + Id ⊗ (FdagzupFzdn - FzupFdagzdn)) +
+              0.25 * Jperp * ((SzupSzdn - 0.25 * nzupnzdn) ⊗ Id + Id ⊗ (SzupSzdn - 0.25 * nzupnzdn)) +
+              0.25 * εx * ((nxup + nxdn) ⊗ Id + Id ⊗ (nxup + nxdn)) +
+              0.25 * εz * ((nzup + nzdn) ⊗ Id + Id ⊗ (nzup + nzdn))
 
     gateNNy = -tc * (fdagfxup - ffdagxup + fdagfxdn - ffdagxdn) +
               Jc * (SxupSxup - 0.25 * Z2SU2tJ2orb.nxup ⊗ Z2SU2tJ2orb.nxup + SxdnSxdn - 0.25 * Z2SU2tJ2orb.nxdn ⊗ Z2SU2tJ2orb.nxdn) +
               -td * (fdagfzup - ffdagzup + fdagfzdn - ffdagzdn) +
               V * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn) +
-              -0.25 * tperp * (Z2SU2tJ2orb.FdagzupFzdn - Z2SU2tJ2orb.FzupFdagzdn) +
-              0.25 * Jperp * (Z2SU2tJ2orb.SzupSzdn - 0.25 * Z2SU2tJ2orb.nzupnzdn) +
-              0.25 * εx * (Z2SU2tJ2orb.nxup + Z2SU2tJ2orb.nxdn) +
-              0.25 * εz * (Z2SU2tJ2orb.nzup + Z2SU2tJ2orb.nzdn)
+              -0.25 * JH * ((SxupSzup + SxdnSzdn) ⊗ Id + Id ⊗ (SxupSzup + SxdnSzdn)) +
+              -0.25 * tperp * ((FdagzupFzdn - FzupFdagzdn) ⊗ Id + Id ⊗ (FdagzupFzdn - FzupFdagzdn)) +
+              0.25 * Jperp * ((SzupSzdn - 0.25 * nzupnzdn) ⊗ Id + Id ⊗ (SzupSzdn - 0.25 * nzupnzdn)) +
+              0.25 * εx * ((nxup + nxdn) ⊗ Id + Id ⊗ (nxup + nxdn)) +
+              0.25 * εz * ((nzup + nzdn) ⊗ Id + Id ⊗ (nzup + nzdn))
     return gateNNx, gateNNy
 end
 
 function get_op_tJ(tag::String, para::Dict{Symbol,Any})
     if tag == "hijNNx"
-        return tJ_hij(para)[1]
+        return tJ2orb_hij(para)[1]
     elseif tag == "hijNNy"
-        return tJ_hij(para)[2]
+        return tJ2orb_hij(para)[2]
         # elseif tag == "CdagC"
         #     Fdag, F = Z2SU2tJFermion.FdagF
         #     OpZ = Z2SU2tJFermion.Z
