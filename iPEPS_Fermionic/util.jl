@@ -49,16 +49,15 @@ function SqrtInv(t::AbstractTensorMap; truncErr=1e-8)
           rslt = TensorMap(diagm(tp), domain(t) ← codomain(t))
           return rslt / mean(tp)
      else
-          data = empty(t.data)
+          tp = similar(t)
           for (c, b) in blocks(t)
                bp = diag(b)
                for (ind, val) in enumerate(bp)
                     val < truncErr ? bp[ind] = zero(TP) : bp[ind] = one(TP) / sqrt(val)
                end
-               data[c] = diagm(bp)
+               block(tp, c) .= diagm(bp)
           end
-          rslt = TensorMap(data, domain(t) ← codomain(t))
-          return rslt / mean(convert(Array, rslt))
+          return tp / mean(convert(Array, tp))
      end
 end
 
@@ -76,12 +75,12 @@ function sqrt4diag(t::AbstractTensorMap)
           tp = diag(block(t, Trivial()))
           return TensorMap(diagm(sqrt.(tp)), domain(t) ← codomain(t))
      else
-          data = empty(t.data)
+          tp = similar(t)
           for (c, b) in blocks(t)
                bp = diag(b)
-               data[c] = diagm(sqrt.(bp))
+               block(tp, c) .= diagm(sqrt.(bp))
           end
-          return TensorMap(data, domain(t) ← codomain(t))
+          return tp
      end
 end
 
@@ -104,14 +103,15 @@ function neg2zero(t::AbstractTensorMap)
           tp[tp.<zero(TP)] .= zero(TP)  # replace all the negative values by zero
           return TensorMap(diagm(tp), domain(t) ← codomain(t))
      else
-          data = empty(t.data)
+          tp = similar(t)
           for (c, b) in blocks(t)
                bp = diag(b)
                @assert isreal(bp)
                bp[bp.<zero(TP)] .= zero(TP)
-               data[c] = diagm(bp)
+               block(tp, c) .= bp
           end
-          return TensorMap(data, domain(t) ← codomain(t))
+
+          return tp
      end
 end
 
@@ -154,7 +154,8 @@ function bar(ipeps::iPEPS)::iPEPS
      # 为了适应自动微分框架，这里用缓冲区构造 dagger state.
      Lx = ipeps.Lx
      Ly = ipeps.Ly
-     Msnew = Buffer(Matrix{TensorMap}(undef, Lx, Ly))
+     # Msnew = Buffer(Matrix{TensorMap}(undef, Lx, Ly))
+     Msnew = Matrix{TensorMap}(undef, Lx, Ly)
      for xx in 1:Lx, yy in 1:Ly
           Msnew[xx, yy] = bar(ipeps[xx, yy])
      end
