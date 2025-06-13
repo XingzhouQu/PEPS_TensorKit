@@ -25,12 +25,12 @@ function main()
     para[:tc] = 0.483
     para[:tperp] = 0.635
     para[:td] = 0.11
-    para[:Jperp] = 0.4
-    para[:JH] = 0.0
+    para[:Jperp] = 0.1
+    para[:JH] = 1.0
     para[:Jc] = 0.233  # not used now. Keep zero
     para[:V] = 0.239  # NN repusion
-    para[:εx] = 0.367 - 0.3
-    para[:εz] = 0.0 - 0.3
+    para[:εx] = 0.367 - 0.4
+    para[:εz] = 0.0 - 0.4
     para[:τlisSU] = [1.0, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0001]
     para[:minStep1τ] = 10   # 对每个虚时步长 τ , 最少投影这么多步
     para[:maxStep1τ] = 20  # 对每个虚时步长 τ , 最多投影这么多步

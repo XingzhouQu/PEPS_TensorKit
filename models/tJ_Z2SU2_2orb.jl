@@ -303,9 +303,29 @@ const FxupFdagzup = let
     Fdag = FFdag1[2]
     @tensor Fxup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * F[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
                                  Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
-    @tensor Fdagzup[a, p1; p2] := iso[p1, s1, s2, s3, s4] * Fdag[a, s1, s1p] * Id1[s4, s4p] * Id1[s2, s2p] *
+    @tensor Fdagzup[a, p1; p2] := iso[p1, s1, s2, s3, s4] * Fdag[a, s2, s2p] * Id1[s4, s4p] * Id1[s1, s1p] *
                                   Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
     Fxup, Fdagzup
+end
+
+const FdagzupFxup = let
+    Fdag = FdagF1[1]
+    F = FdagF1[2]
+    @tensor Fdagzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * Fdag[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                    Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fxup[a, p1; p2] := iso[p1, s1, s2, s3, s4] * F[a, s1, s1p] * Id1[s4, s4p] * Id1[s2, s2p] *
+                               Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    Fdagzup, Fxup
+end
+
+const FzupFdagxup = let
+    F = FFdag1[1]
+    Fdag = FFdag1[2]
+    @tensor Fzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * F[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                 Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagxup[a, p1; p2] := iso[p1, s1, s2, s3, s4] * Fdag[a, s1, s1p] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                  Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    Fzup, Fdagxup
 end
 
 const FdagxdnFzdn = let
@@ -328,13 +348,33 @@ const FxdnFdagzdn = let
     Fxdn, Fdagzdn
 end
 
+const FdagzdnFxdn = let
+    Fdag = FdagF1[1]
+    F = FdagF1[2]
+    @tensor Fdagzdn[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * Fdag[s3, s3p, a] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                    Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * F[a, s4, s4p] * Id1[s3, s3p] * Id1[s1, s1p] *
+                               Id1[s2, s2p] * iso'[s1p, s2p, s3p, s4p, p2]
+    Fdagzdn, Fxdn
+end
+
+const FzdnFdagxdn = let
+    F = FFdag1[1]
+    Fdag = FFdag1[2]
+    @tensor Fzdn[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * F[s3, s3p, a] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                 Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * Fdag[a, s4, s4p] * Id1[s3, s3p] * Id1[s2, s2p] *
+                                  Id1[s1, s1p] * iso'[s1p, s2p, s3p, s4p, p2]
+    Fzdn, Fdagxdn
+end
+
 # ---------------------- interlayer pairing ---------------------
 # singlet pairing Δᵢⱼ^dag Δₖₗ  (onsite terms)
 const Δₛdagx = let
     A = FdagF1[1]
     B = FFdag1[2]
     @tensor deltaSdag[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s1, s1in] * A[s1in, s1p, a] * B[a, s4, s4p] *
-                                 Id1[s2, s2p] * Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+                                 Z1[s2, s2p] * Z1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
     deltaSdag
 end
 
@@ -342,7 +382,7 @@ const Δₛx = let
     A = FFdag1[1]
     B = FdagF1[2]
     @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s1, s1in] * A[s1in, s1p, a] * B[a, s4, s4p] *
-                              Id1[s2, s2p] * Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+                              Z1[s2, s2p] * Z1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
     deltaS
 end
 
@@ -414,11 +454,23 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
     Fxup, Fdagzup = Z2SU2tJ2orb.FxupFdagzup
     @tensor ffdagxzup[p1, p3; p2, p4] := Zxup[p1, p1in] * Fxup[p1in, p2, a] * Fdagzup[a, p3, p4]
 
+    Fdagzup, Fxup = Z2SU2tJ2orb.FdagzupFxup
+    Zzup = Z2SU2tJ2orb.Zzup
+    @tensor fdagfzxup[p1, p3; p2, p4] := Zzup[p1, p1in] * Fdagzup[p1in, p2, a] * Fxup[a, p3, p4]
+    Fzup, Fdagxup = Z2SU2tJ2orb.FzupFdagxup
+    @tensor ffdagzxup[p1, p3; p2, p4] := Zzup[p1, p1in] * Fzup[p1in, p2, a] * Fdagxup[a, p3, p4]
+
     Fdagxdn, Fzdn = Z2SU2tJ2orb.FdagxdnFzdn
     Zxdn = Z2SU2tJ2orb.Zxdn
     @tensor fdagfxzdn[p1, p3; p2, p4] := Zxdn[p1, p1in] * Fdagxdn[p1in, p2, a] * Fzdn[a, p3, p4]
     Fxdn, Fdagzdn = Z2SU2tJ2orb.FxdnFdagzdn
     @tensor ffdagxzdn[p1, p3; p2, p4] := Zxdn[p1, p1in] * Fxdn[p1in, p2, a] * Fdagzdn[a, p3, p4]
+
+    Fdagzdn, Fxdn = Z2SU2tJ2orb.FdagzdnFxdn
+    Zzdn = Z2SU2tJ2orb.Zzdn
+    @tensor fdagfzxdn[p1, p3; p2, p4] := Zzdn[p1, p1in] * Fdagzdn[p1in, p2, a] * Fxdn[a, p3, p4]
+    Fzdn, Fdagxdn = Z2SU2tJ2orb.FzdnFdagxdn
+    @tensor ffdagzxdn[p1, p3; p2, p4] := Zzdn[p1, p1in] * Fzdn[p1in, p2, a] * Fdagxdn[a, p3, p4]
 
     # intralayer Sx ⋅ Sx interaction
     SLxup, SRxup = Z2SU2tJ2orb.SxupSxup
@@ -441,7 +493,7 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
     gateNNx = -tc * (fdagfxup - ffdagxup + fdagfxdn - ffdagxdn) +
               Jc * (SxupSxup - 0.25 * Z2SU2tJ2orb.nxup ⊗ Z2SU2tJ2orb.nxup + SxdnSxdn - 0.25 * Z2SU2tJ2orb.nxdn ⊗ Z2SU2tJ2orb.nxdn) +
               -td * (fdagfzup - ffdagzup + fdagfzdn - ffdagzdn) +
-              -V * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn) +
+              -V * 0.5 * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn + fdagfzxup - ffdagzxup + fdagfzxdn - ffdagzxdn) +
               -0.25 * JH * ((SxupSzup + SxdnSzdn) ⊗ Id + Id ⊗ (SxupSzup + SxdnSzdn)) +
               -0.25 * tperp * ((FdagzupFzdn - FzupFdagzdn) ⊗ Id + Id ⊗ (FdagzupFzdn - FzupFdagzdn)) +
               0.25 * Jperp * ((SzupSzdn - 0.25 * nzupnzdn) ⊗ Id + Id ⊗ (SzupSzdn - 0.25 * nzupnzdn)) +
@@ -451,7 +503,7 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
     gateNNy = -tc * (fdagfxup - ffdagxup + fdagfxdn - ffdagxdn) +
               Jc * (SxupSxup - 0.25 * Z2SU2tJ2orb.nxup ⊗ Z2SU2tJ2orb.nxup + SxdnSxdn - 0.25 * Z2SU2tJ2orb.nxdn ⊗ Z2SU2tJ2orb.nxdn) +
               -td * (fdagfzup - ffdagzup + fdagfzdn - ffdagzdn) +
-              V * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn) +
+              V * 0.5 * (fdagfxzup - ffdagxzup + fdagfxzdn - ffdagxzdn + fdagfzxup - ffdagzxup + fdagfzxdn - ffdagzxdn) +
               -0.25 * JH * ((SxupSzup + SxdnSzdn) ⊗ Id + Id ⊗ (SxupSzup + SxdnSzdn)) +
               -0.25 * tperp * ((FdagzupFzdn - FzupFdagzdn) ⊗ Id + Id ⊗ (FdagzupFzdn - FzupFdagzdn)) +
               0.25 * Jperp * ((SzupSzdn - 0.25 * nzupnzdn) ⊗ Id + Id ⊗ (SzupSzdn - 0.25 * nzupnzdn)) +
