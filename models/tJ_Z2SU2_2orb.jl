@@ -402,6 +402,38 @@ const Δₛz = let
     deltaS
 end
 
+const Δₛdagxz = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor deltaSdag[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s1, s1in] * A[s1in, s1p, a] * B[a, s3, s3p] *
+                                 Z1[s2, s2p] * Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    deltaSdag
+end
+
+const Δₛxz = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s1, s1in] * A[s1in, s1p, a] * B[a, s3, s3p] *
+                              Z1[s2, s2p] * Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    deltaS
+end
+
+const Δₛdagzx = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor deltaSdag[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s2, s2in] * A[s2in, s2p, a] * B[a, s4, s4p] *
+                                 Z1[s3, s3p] * Id1[s1, s1p] * iso'[s1p, s2p, s3p, s4p, p2]
+    deltaSdag
+end
+
+const Δₛzx = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s2, s2in] * A[s2in, s2p, a] * B[a, s4, s4p] *
+                              Z1[s3, s3p] * Id1[s1, s1p] * iso'[s1p, s2p, s3p, s4p, p2]
+    deltaS
+end
+
 end
 
 """
@@ -513,27 +545,24 @@ function tJ2orb_hij(para::Dict{Symbol,Any})
 end
 
 function get_op_tJ(tag::String, para::Dict{Symbol,Any})
+    ## two site Obs
     if tag == "hijNNx"
         return tJ2orb_hij(para)[1]
     elseif tag == "hijNNy"
         return tJ2orb_hij(para)[2]
-        # elseif tag == "CdagC"
-        #     Fdag, F = Z2SU2tJFermion.FdagF
-        #     OpZ = Z2SU2tJFermion.Z
-        #     @tensor fdagf[p1, p3; p2, p4] := OpZ[p1, p1in] * Fdag[p1in, p2, a] * F[a, p3, p4]
-        #     return fdagf
-        # elseif tag == "SS"
-        #     SL, SR = Z2SU2tJFermion.SS
-        #     @tensor ss[p1, p3; p2, p4] := SL[p1, p2, a] * SR[a, p3, p4]
-        #     return ss
-        # elseif tag == "NN"
-        #     return Z2SU2tJFermion.n ⊗ Z2SU2tJFermion.n
-        # elseif tag == "N"
-        #     return Z2SU2tJFermion.n
+        ## single site Obs
     elseif tag == "Δₛx"
         return Z2SU2tJ2orb.Δₛx
     elseif tag == "Δₛdagx"
         return Z2SU2tJ2orb.Δₛdagx
+    elseif tag == "Δₛxz"
+        return Z2SU2tJ2orb.Δₛxz
+    elseif tag == "Δₛdagxz"
+        return Z2SU2tJ2orb.Δₛdagxz
+    elseif tag == "Δₛzx"
+        return Z2SU2tJ2orb.Δₛzx
+    elseif tag == "Δₛdagzx"
+        return Z2SU2tJ2orb.Δₛdagzx
     elseif tag == "Δₛz"
         return Z2SU2tJ2orb.Δₛz
     elseif tag == "Δₛdagz"
@@ -542,6 +571,14 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
         return Z2SU2tJ2orb.nxup + Z2SU2tJ2orb.nxdn
     elseif tag == "Nz"
         return Z2SU2tJ2orb.nzup + Z2SU2tJ2orb.nzdn
+    elseif tag == "SxupSzup"
+        return Z2SU2tJ2orb.SxupSzup
+    elseif tag == "SxdnSzdn"
+        return Z2SU2tJ2orb.SxdnSzdn
+    elseif tag == "SzupSzdn"
+        return Z2SU2tJ2orb.SzupSzdn
+    elseif tag == "nzupnzdn"
+        return Z2SU2tJ2orb.nzupnzdn
     else
         error("Unsupported tag $tag. Check input tag or add this operator.")
     end
