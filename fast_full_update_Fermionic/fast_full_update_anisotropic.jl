@@ -9,7 +9,7 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para
     Dk = para[:Dk]
     χ = para[:χ]
     verbose = para[:verbose]
-    NNNmethod = para[:NNNmethod]
+    # NNNmethod = para[:NNNmethod]
     maxStep1τ = para[:maxStep1τ]
     hams = HamFunc(para)
     itsum = 0  # 记录总的迭代次数
@@ -60,7 +60,7 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, χ::Int,
     end
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
-        nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, χ, gates[1]; tol=tol, verbose=verbose, maxiter=maxiter)
+        nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, χ, gates[2]; tol=tol, verbose=verbose, maxiter=maxiter)
         # verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
         # errlis[Nb] = err
         prodNrm *= nrm

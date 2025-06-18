@@ -368,7 +368,7 @@ const FzdnFdagxdn = let
     Fzdn, Fdagxdn
 end
 
-# ---------------------- interlayer pairing ---------------------
+# ---------------------- interlayer onsite pairing ---------------------
 # singlet pairing Δᵢⱼ^dag Δₖₗ  (onsite terms)
 const Δₛdagx = let
     A = FdagF1[1]
@@ -432,6 +432,95 @@ const Δₛzx = let
     @tensor deltaS[p1; p2] := iso[p1, s1, s2, s3, s4] * Z1[s2, s2in] * A[s2in, s2p, a] * B[a, s4, s4p] *
                               Z1[s3, s3p] * Id1[s1, s1p] * iso'[s1p, s2p, s3p, s4p, p2]
     deltaS
+end
+
+# ---------------------- interlayer nearest neighbor pairing ---------------------
+const Δₛdagx2site = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor Fdagxup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                    Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s4, s4p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                  Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛdagx2site[p1, p3; p2, p4] := Zxup[p1, p1in] * Fdagxup[p1in, p2, a] * Fdagxdn[a, p3, p4]
+    Δₛdagx2site
+end
+
+const Δₛx2site = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor Fxup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                 Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s4, s4p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                               Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛx2site[p1, p3; p2, p4] := Zxup[p1, p1in] * Fxup[p1in, p2, a] * Fxdn[a, p3, p4]
+    Δₛx2site
+end
+
+const Δₛdagz2site = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor Fdagzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                    Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagzdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                  Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛdagz2site[p1, p3; p2, p4] := Zzup[p1, p1in] * Fdagzup[p1in, p2, a] * Fdagzdn[a, p3, p4]
+    Δₛdagz2site
+end
+
+const Δₛz2site = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor Fzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                 Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fzdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                               Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛz2site[p1, p3; p2, p4] := Zzup[p1, p1in] * Fzup[p1in, p2, a] * Fzdn[a, p3, p4]
+    Δₛz2site
+end
+
+const Δₛdagxz2site = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor Fdagxup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                    Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagzdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                  Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛdagxz2site[p1, p3; p2, p4] := Zxup[p1, p1in] * Fdagxup[p1in, p2, a] * Fdagzdn[a, p3, p4]
+    Δₛdagxz2site
+end
+
+const Δₛxz2site = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor Fxup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                 Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fzdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                               Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛxz2site[p1, p3; p2, p4] := Zxup[p1, p1in] * Fxup[p1in, p2, a] * Fzdn[a, p3, p4]
+    Δₛxz2site
+end
+
+const Δₛdagzx2site = let
+    A = FdagF1[1]
+    B = FFdag1[2]
+    @tensor Fdagzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                    Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fdagxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s4, s4p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                  Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛdagzx2site[p1, p3; p2, p4] := Zzup[p1, p1in] * Fdagzup[p1in, p2, a] * Fdagxdn[a, p3, p4]
+    Δₛdagzx2site
+end
+
+const Δₛzx2site = let
+    A = FFdag1[1]
+    B = FdagF1[2]
+    @tensor Fzup[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * A[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                 Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Fxdn[a, p1; p2] := iso[p1, s1, s2, s3, s4] * B[a, s4, s4p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                               Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor Δₛzx2site[p1, p3; p2, p4] := Zzup[p1, p1in] * Fzup[p1in, p2, a] * Fxdn[a, p3, p4]
+    Δₛzx2site
 end
 
 end
@@ -550,6 +639,22 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
         return tJ2orb_hij(para)[1]
     elseif tag == "hijNNy"
         return tJ2orb_hij(para)[2]
+    elseif tag == "Δₛx2site"
+        return Z2SU2tJ2orb.Δₛx2site
+    elseif tag == "Δₛdagx2site"
+        return Z2SU2tJ2orb.Δₛdagx2site
+    elseif tag == "Δₛz2site"
+        return Z2SU2tJ2orb.Δₛz2site
+    elseif tag == "Δₛdagz2site"
+        return Z2SU2tJ2orb.Δₛdagz2site
+    elseif tag == "Δₛxz2site"
+        return Z2SU2tJ2orb.Δₛxz2site
+    elseif tag == "Δₛdagxz2site"
+        return Z2SU2tJ2orb.Δₛdagxz2site
+    elseif tag == "Δₛzx2site"
+        return Z2SU2tJ2orb.Δₛzx2site
+    elseif tag == "Δₛdagzx2site"
+        return Z2SU2tJ2orb.Δₛdagzx2site
         ## single site Obs
     elseif tag == "Δₛx"
         return Z2SU2tJ2orb.Δₛx
