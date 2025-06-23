@@ -13,13 +13,13 @@ function get_Efull_fix_gauge(X::TensorMap, Xbar::TensorMap, Y::TensorMap, Ybar::
         gatel2 = swap_gate(space(X)[3], space(Xbar)[1]; Eltype=eltype(X))
         gater1 = swap_gate(space(Y)[1], space(Ybar)[1]; Eltype=eltype(X))
         gater2 = swap_gate(space(Y)[4], space(Ybar)[2]; Eltype=eltype(X))
-        @tensor Ql[rχt, ElDup; ElDdn, rχb] :=
+        @tensoropt Ql[rχt, ElDup; ElDdn, rχb] :=
             envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχt, tupDin, tdnDin] *
             envs[x1, y1].transfer.l[bχin, bχinin, lupDin, ldnDin] * gatel1[lupDin, tdnDin, lupDin2, tdnDin2] *
             X[lupDin2, tupDin, bupDin2, ElDup] * Xbar[ElDdnin, ldnDin, tdnDin2, bdnDin] *
             gatel2[bupDin, ElDdn, bupDin2, ElDdnin] * envs[x1, y1].corner.lb[bχinin, rχinin] *
             envs[x1, y1].transfer.b[rχinin, bupDin, bdnDin, rχb]
-        @tensor Qr[lχt, ErDup; ErDdn, lχb] :=
+        @tensoropt Qr[lχt, ErDup; ErDdn, lχb] :=
             envs[x2, y2].corner.rt[lχin, bχin] * envs[x2, y2].transfer.t[lχt, lχin, tupDin, tdnDin] *
             envs[x2, y2].transfer.r[rupDin, rdnDin, bχin, bχinin] * Y[ErDupin, tupDin, rupDin, bupDin2] *
             gater1[ErDup, tdnDin, ErDupin, tdnDin2] * gater2[bupDin, rdnDin, bupDin2, rdnDin2] *
@@ -33,13 +33,13 @@ function get_Efull_fix_gauge(X::TensorMap, Xbar::TensorMap, Y::TensorMap, Ybar::
         gatet2 = swap_gate(space(X)[3], space(Xbar)[1]; Eltype=eltype(X))
         gateb1 = swap_gate(space(Y)[1], space(Ybar)[1]; Eltype=eltype(X))
         gateb2 = swap_gate(space(Y)[4], space(Ybar)[2]; Eltype=eltype(X))
-        @tensor Qt[bχl, EtDup; EtDdn, bχr] :=
+        @tensoropt Qt[bχl, EtDup; EtDdn, bχr] :=
             envs[x1, y1].corner.lt[rχin, bχin] * envs[x1, y1].transfer.t[rχin, rχinin, tupDin, tdnDin] *
             envs[x1, y1].transfer.l[bχin, bχl, lupDin, ldnDin] * gatet1[lupDin, tdnDin, lupDin2, tdnDin2] *
             X[lupDin2, tupDin, rupDin2, EtDup] * Xbar[EtDdnin, ldnDin, tdnDin2, rdnDin] *
             gatet2[rupDin, EtDdn, rupDin2, EtDdnin] * envs[x1, y1].corner.rt[rχinin, bχinin] *
             envs[x1, y1].transfer.r[rupDin, rdnDin, bχinin, bχr]
-        @tensor Qb[tχl, EbDup; EbDdn, tχr] :=
+        @tensoropt Qb[tχl, EbDup; EbDdn, tχr] :=
             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.b[rχin, bupDin, bdnDin, rχinin] *
             envs[x2, y2].transfer.l[tχl, tχin, lupDin, ldnDin] * Ybar[ldnDin2, rdnDin2, bdnDin, EbDdn] *
             gateb1[EbDup, ldnDin, EbDupin, ldnDin2] * gateb2[bupDin, rdnDin, bupDin2, rdnDin2] *
