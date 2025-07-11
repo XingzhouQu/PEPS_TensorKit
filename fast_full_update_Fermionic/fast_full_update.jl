@@ -6,7 +6,6 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para
     Ly = ipeps.Ly
 
     τlis = para[:τlisFFU]
-    Dk = para[:Dk]
     χ = para[:χ]
     verbose = para[:verbose]
     NNNmethod = para[:NNNmethod]
@@ -18,7 +17,7 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para
     for τ in τlis
         gates = get_gates(hams, τ)
         for it in 0:maxStep1τ
-            @time "FFU one step" prodNrm = fast_full_update_1step!(ipeps, envs, Dk, χ, gates; verbose=verbose, maxiter=para[:maxiterFFU], tol=para[:tolFFU])
+            @time "FFU one step" prodNrm = fast_full_update_1step!(ipeps, envs, χ, gates; verbose=verbose, maxiter=para[:maxiterFFU], tol=para[:tolFFU])
             itime += τ
             println("total imaginary time = $itime")
             # ======== 检查能量收敛性 ====== See: PRB 104, 155118 (2021), Appendix 3.C
@@ -43,7 +42,7 @@ function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para
 end
 
 
-function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, χ::Int, gates::Vector{TensorMap}; verbose=1, maxiter=10, tol=1e-8)
+function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, χ::Int, gates::Vector{TensorMap}; verbose=1, maxiter=10, tol=1e-8)
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     # errlis = Vector{Float64}(undef, 2 * length(gates) * Lx * Ly)  # 总的 bond 数
@@ -52,6 +51,9 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, χ::Int,
     # ================= 最近邻相互作用 ==============
     # 逐行更新横向Bond
     for yy in 1:Ly, xx in 1:Lx
+        # get the exact dimension in that target bond to avoid the "space mismatch error"
+        Dk = dim(space(ipeps[xx, yy])[4])  # virtual bond convention (l,t,p,'r',b) 
+        # Then do the projection
         nrm = bond_proj_lr!(ipeps, envs, xx, yy, Dk, χ, gates[1]; tol=tol, verbose=verbose, maxiter=maxiter)
         # verbose > 1 ? println("横向更新 [$xx, $yy], error=$err") : nothing
         # errlis[Nb] = err
@@ -60,6 +62,9 @@ function fast_full_update_1step!(ipeps::iPEPS, envs::iPEPSenv, Dk::Int, χ::Int,
     end
     # 逐列更新纵向Bond
     for xx in 1:Lx, yy in 1:Ly
+        # get the exact dimension in that target bond to avoid the "space mismatch error"
+        Dk = dim(space(ipeps[xx, yy])[5])  # virtual bond convention (l,t,p,r,'b') 
+        # Then do the projection
         nrm = bond_proj_tb!(ipeps, envs, xx, yy, Dk, χ, gates[1]; tol=tol, verbose=verbose, maxiter=maxiter)
         # verbose > 1 ? println("纵向更新 [$xx, $yy], error=$err") : nothing
         # errlis[Nb] = err
