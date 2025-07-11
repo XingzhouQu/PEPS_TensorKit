@@ -1,7 +1,7 @@
 include("../iPEPS_Fermionic/swap_gate.jl")
 include("FFU_gate_proj.jl")
 
-function fast_full_update!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para::Dict{Symbol,Any})
+function fast_full_update_aniso!(ipeps::iPEPS, envs::iPEPSenv, HamFunc::Function, para::Dict{Symbol,Any})
     Lx = ipeps.Lx
     Ly = ipeps.Ly
 
