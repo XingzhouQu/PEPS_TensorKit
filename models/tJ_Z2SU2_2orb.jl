@@ -146,6 +146,14 @@ const SzupSzdn = let
     SzupSzdn
 end
 
+const SxupSxdn = let
+    SL = SS1[1]
+    SR = SS1[2]
+    @tensor SxupSxdn[p1; p2] := iso[p1, s1, s2, s3, s4] * Id1[s2, s2p] * Id1[s3, s3p] *
+                                SL[s1, s1p, a] * SR[a, s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    SxupSxdn
+end
+
 # ====================== onsite hopping term, FzdagFz ======================
 const FdagF1 = let
     aspace = Rep[ℤ₂×SU₂]((1, 1 / 2) => 1)
@@ -202,6 +210,46 @@ const SxdnSxdn = let
     @tensor SRx[a, p1; p2] := iso[p1, s1, s2, s3, s4] * SR[a, s4, s4p] * Id1[s1, s1p] * Id1[s2, s2p] *
                               Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
     SLx, SRx
+end
+
+const SzupSzup = let
+    SL = SS1[1]
+    SR = SS1[2]
+    @tensor SLz[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * SL[s2, s2p, a] * Id1[s4, s4p] * Id1[s1, s1p] *
+                                Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor SRz[a, p1; p2] := iso[p1, s1, s2, s3, s4] * SR[a, s2, s2p] * Id1[s4, s4p] * Id1[s1, s1p] *
+                              Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    SLz, SRz
+end
+
+const SzdnSzdn = let
+    SL = SS1[1]
+    SR = SS1[2]
+    @tensor SLz[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * SL[s3, s3p, a] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor SRz[a, p1; p2] := iso[p1, s1, s2, s3, s4] * SR[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                              Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    SLz, SRz
+end
+
+const SxupSzup_intra = let
+    SL = SS1[1]
+    SR = SS1[2]
+    @tensor SLx[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * SL[s1, s1p, a] * Id1[s4, s4p] * Id1[s2, s2p] *
+                                Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor SRz[a, p1; p2] := iso[p1, s1, s2, s3, s4] * SR[a, s2, s2p] * Id1[s4, s4p] * Id1[s1, s1p] *
+                              Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    SLx, SRz
+end
+
+const SxdnSzdn_intra = let
+    SL = SS1[1]
+    SR = SS1[2]
+    @tensor SLx[p1; (p2, a)] := iso[p1, s1, s2, s3, s4] * SL[s4, s4p, a] * Id1[s1, s1p] * Id1[s2, s2p] *
+                                Id1[s3, s3p] * iso'[s1p, s2p, s3p, s4p, p2]
+    @tensor SRz[a, p1; p2] := iso[p1, s1, s2, s3, s4] * SR[a, s3, s3p] * Id1[s1, s1p] * Id1[s2, s2p] *
+                              Id1[s4, s4p] * iso'[s1p, s2p, s3p, s4p, p2]
+    SLx, SRz
 end
 
 # ====================== Nearest neighbor hopping term =======================
@@ -812,6 +860,33 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
         return Z2SU2tJ2orb.Δₛxzup_intra
     elseif tag == "Δₛxzdn_intra"
         return Z2SU2tJ2orb.Δₛxzdn_intra
+    elseif tag == "SxupSxup_intra"
+        # intralayer Sx ⋅ Sx interaction
+        SLxup, SRxup = Z2SU2tJ2orb.SxupSxup
+        @tensor SxupSxup[p1, p3; p2, p4] := SLxup[p1, p2, a] * SRxup[a, p3, p4]
+        return SxupSxup
+    elseif tag == "SxdnSxdn_intra"
+        SLxdn, SRxdn = Z2SU2tJ2orb.SxdnSxdn
+        @tensor SxdnSxdn[p1, p3; p2, p4] := SLxdn[p1, p2, a] * SRxdn[a, p3, p4]
+        return SxdnSxdn
+    elseif tag == "SzupSzup_intra"
+        # intralayer Sz ⋅ Sz interaction
+        SLzup, SRzup = Z2SU2tJ2orb.SzupSzup
+        @tensor SzupSzup[p1, p3; p2, p4] := SLzup[p1, p2, a] * SRzup[a, p3, p4]
+        return SzupSzup
+    elseif tag == "SzdnSzdn_intra"
+        SLzdn, SRzdn = Z2SU2tJ2orb.SzdnSzdn
+        @tensor SzdnSzdn[p1, p3; p2, p4] := SLzdn[p1, p2, a] * SRzdn[a, p3, p4]
+        return SzdnSzdn
+    elseif tag == "SxupSzup_intra"
+        # intralayer Sx ⋅ Sx interaction
+        SLxup, SRzup = Z2SU2tJ2orb.SxupSzup_intra
+        @tensor SxupSzup[p1, p3; p2, p4] := SLxup[p1, p2, a] * SRzup[a, p3, p4]
+        return SxupSzup
+    elseif tag == "SxdnSzdn_intra"
+        SLxdn, SRzdn = Z2SU2tJ2orb.SxdnSzdn_intra
+        @tensor SxdnSzdn[p1, p3; p2, p4] := SLxdn[p1, p2, a] * SRzdn[a, p3, p4]
+        return SxdnSzdn
         ## single site Obs
     elseif tag == "Δₛx"
         return Z2SU2tJ2orb.Δₛx
@@ -839,6 +914,8 @@ function get_op_tJ(tag::String, para::Dict{Symbol,Any})
         return Z2SU2tJ2orb.SxdnSzdn
     elseif tag == "SzupSzdn"
         return Z2SU2tJ2orb.SzupSzdn
+    elseif tag == "SxupSxdn"
+        return Z2SU2tJ2orb.SxupSxdn
     elseif tag == "nzupnzdn"
         return Z2SU2tJ2orb.nzupnzdn
     else
