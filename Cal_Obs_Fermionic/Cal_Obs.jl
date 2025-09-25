@@ -1,5 +1,7 @@
 # using ChainRulesCore: ignore_derivatives
+using Memoize
 include("../iPEPS_Fermionic/swap_gate.jl")
+include("./Cal_Obs_LongRangeA2A.jl")
 
 function Cal_Obs_1site(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Ops::Vector{String}, para::Dict{Symbol,Any}; site=[1, 1], get_op::Function)
     x = site[1]
@@ -29,7 +31,9 @@ function Cal_Obs_1site(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Ops::Vecto
 end
 
 """
-计算两点观测量。输入的site convention:\n
+计算近邻或次近邻两点观测量。\n 
+此函数先收缩所有环境，再逐一放入算符，要计算多组两点算符观测量的情况下比较高效。\n
+输入的 site convention:\n
 [site1, site2] = \n
 [左,右]; [上,下]; [左上,右下]; [右上,左下]
 """
@@ -42,20 +46,19 @@ function Cal_Obs_2site(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vec
         println("Fermionic! Calculating $Gates at site $site1 and site $site2")
         rslt = _2siteObs_adjSite(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op)
         return rslt
-    elseif (abs(site1[1] - site2[1]) == 1) && (abs(site1[2] - site2[2]) == 1)  # 斜对角格点
+    elseif (abs(site1[1] - site2[1]) == 1) && (abs(site1[2] - site2[2]) == 1)  # 次近邻斜对角格点
         println("Fermionic! Calculating $Gates at site $site1 and site $site2")
         rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, site1, site2, get_op)
         return rslt
     else
-        error("Larger distance is not supported yet.")
+        error("Check the input sites.")
     end
     return nothing
 end
 
-
+# 收缩两点之间的 iPEPS 张量和环境。
 function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
-    # ADflag ? ipepsbar = ignore_derivatives(ipepsbar) : nothing
     x1, y1 = site1
     x2, y2 = site2
     M1 = ipeps[x1, y1]
@@ -87,13 +90,6 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
             envs[x2, y2].corner.rt[rt2t2, rt2r] * swgater4[b22Dup, r2Ddn, b22Dupin, r2Ddnin] *
             envs[x2, y2].transfer.r[r2Dup, r2Ddn, rt2r, rb2r] * envs[x2, y2].corner.rb[rb2b2, rb2r]
         @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] := leftpart[pup1, Dupin, t12t2, pdn1, Ddnin, b12b2] * rightpart[pup2, t12t2, Dupin, pdn2, Ddnin, b12b2]
-        # ignore_derivatives() do
-        #     leftpart, rightpart = nothing, nothing
-        #     for ii in 1:4
-        #         eval(Meta.parse("swgatel$ii, swgater$ii = nothing, nothing"))
-        #     end
-        #     GC.gc()
-        # end
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x2 == x1  # 纵向的两个点
         swgatet1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
@@ -119,13 +115,6 @@ function _2siteObs_adjSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates:
             swgateb4[r22Ddn, b2Dup, r22Ddnin, b2Dupin] * envs[x2, y2].transfer.r[r22Dup, r22Ddn, r12r2, rb2r2] *
             envs[x2, y2].transfer.b[lb2b, b2Dup, b2Ddn, rb2b] * envs[x2, y2].corner.rb[rb2b, rb2r2]
         @tensor opt = true ψ□ψ[pup1, pup2; pdn1, pdn2] := toppart[pup1, Dupin, l12l2; pdn1, Ddnin, r12r2] * bottompart[pup2, Dupin, l12l2; pdn2, Ddnin, r12r2]
-        # ignore_derivatives() do
-        #     toppart, bottompart = nothing, nothing
-        #     for ii in 1:4
-        #         eval(Meta.parse("swgatet$ii, swgateb$ii = nothing, nothing"))
-        #     end
-        #     GC.gc()
-        # end
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     else
         error("check input sites")
@@ -154,7 +143,6 @@ end
 #     (3) site2      (4) auxsite
 function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Vector{String}, para::Dict{Symbol,Any},
     site1::Vector{Int}, site2::Vector{Int}, get_op::Function; ADflag=false)
-    # ADflag ? ipepsbar = ignore_derivatives(ipepsbar) : nothing
     Lx = ipeps.Lx
     Ly = ipeps.Ly
     x1, y1 = site1
@@ -195,13 +183,6 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         @tensor opt = true ψ□ψ[pup1, pup4; pdn1, pdn4] :=
             QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
-        # ignore_derivatives() do
-        #     QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
-        #     for ii in 1:6
-        #         eval(Meta.parse("swgatelt$ii, swgaterb$ii = nothing, nothing"))
-        #     end
-        #     GC.gc()
-        # end
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     elseif x1 == (x2 + 1 - Int(ceil((x2 + 1) / Lx) - 1) * Lx)  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
         QuL = get_QuL(ipeps, ipepsbar, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
@@ -235,13 +216,7 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         @tensor opt = true ψ□ψ[pup2, pup3; pdn2, pdn3] :=
             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
-        # ignore_derivatives() do
-        #     QuL, QuR, QdL, QdR = nothing, nothing, nothing, nothing
-        #     for ii in 1:6
-        #         eval(Meta.parse("swgatelb$ii, swgatert$ii = nothing, nothing"))
-        #     end
-        #     GC.gc()
-        # end
+
         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
     else
         error("check input sites")
@@ -262,32 +237,3 @@ function _2siteObs_diagSite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates
         return rslt
     end
 end
-
-# 内存不友好
-# @strided @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
-# envs[x1, y1].corner.lt[lt2t1, lt2l] * envs[x1, y1].transfer.l[lt2l, lb2l, l2Dup, l2Ddn] *
-# envs[x1, y1].transfer.t[lt2t1, t12t2, t12Dup, t12Ddn] * swgatel1[l2Dup, t12Ddn, l2Dupin, t12Ddnin] *
-# M1[l2Dupin, t12Dup, pup1in, Dupin, b12Dupin] * swgatel2[pup1, b12Dupin2, pup1in, b12Dupin] *
-# envs[x1, y1].corner.lb[lb2l, lb2b1] * M1bar[l2Ddn, t12Ddnin, pdn1in, Ddnin2, b12Ddn] *
-# envs[x1, y1].transfer.b[lb2b1, b12Dup, b12Ddn, b12b2] * swgatel3[pdn1, b12Dupin3, pdn1in, b12Dupin2] *
-# swgatel4[b12Dup, Ddnin, b12Dupin3, Ddnin2] *
-# swgater1[Dupin, t22Ddn, Dupinin, t22Ddnin3] *
-# envs[x2, y2].transfer.t[t12t2, rt2t2, t22Dup, t22Ddn] * M2[Dupinin, t22Dup, pup2in, r2Dup, b22Dupin] *
-# swgater2[pup2, t22Ddnin3, pup2in, t22Ddnin2] * swgater3[pdn2, t22Ddnin2, pdn2in, t22Ddnin] *
-# M2bar[Ddnin, t22Ddnin, pdn2in, r2Ddnin, b22Ddn] * envs[x2, y2].transfer.b[b12b2, b22Dup, b22Ddn, rb2b2] *
-# envs[x2, y2].corner.rt[rt2t2, rt2r] * swgater4[b22Dup, r2Ddn, b22Dupin, r2Ddnin] *
-# envs[x2, y2].transfer.r[r2Dup, r2Ddn, rt2r, rb2r] * envs[x2, y2].corner.rb[rb2b2, rb2r]
-
-# 下面这一堆有错误
-# @strided @tensor ψ□ψ[pup1, pup2; pdn1, pdn2] :=
-# envs[x1, y1].corner.lt[lt2t, lt2l1] * envs[x1, y1].transfer.l[lt2l1, l12l2, l12Dup, l12Ddn] *
-# envs[x1, y1].transfer.t[lt2t, rt2t, t2Dup, t2Ddn] * envs[x1, y1].corner.rt[rt2t, rt2r1] *
-# swgatet1[l12Dup, t2Ddn, l12Dupin, t2Ddnin] * M1[l12Dupin, t2Dup, pup1in, r12Dupin, Dupin] *
-# M1bar[l12Ddn, t2Ddnin, pdn1in, r12Ddnin, Ddnin] * swgatet2[pdn1, r12Ddnin2, pdn1in, r12Ddnin] *
-# swgatet3[pup1, r12Ddnin3, pup1in, r12Ddnin2] * swgatet4[r12Dup, r12Ddn, r12Dupin, r12Ddnin3] *
-# envs[x1, y1].transfer.r[r12Dup, r12Ddn, rt2r1, r12r2] * envs[x2, y2].transfer.l[l12l2, lb2l2, l22Dup, l22Ddn] *
-# envs[x2, y2].corner.lb[lb2l2, lb2b] * swgateb1[Ddnin, l22Dup, Ddninin, l22Dupin3] *
-# M2bar[l22Ddn, Ddninin, pdn2in, r22Ddnin, b2Ddn] * swgateb2[pdn2, l22Dupin3, pdn2in, l22Dupin2] *
-# swgateb3[l22Dupin2, pup2, l22Dupin, pup2in] * M2[l22Dupin, Dupin, pup2in, r22Dup, b2Dupin] *
-# swgateb4[r22Ddn, b2Dup, r22Ddnin, b2Dupin] * envs[x2, y2].transfer.r[r22Dup, r22Ddn, r12r2, rb2r2] *
-# envs[x2, y2].transfer.b[lb2b, b2Dup, b2Ddn, rb2b] * envs[x2, y2].corner.rb[rb2b, rb2r2]
