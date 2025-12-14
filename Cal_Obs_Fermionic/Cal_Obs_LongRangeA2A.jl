@@ -277,8 +277,8 @@ function Cal_Obs_h(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_en
             #     error("rank of OpL and OpR must be 2 or 3")
             # end
             # @tensor tmp = ψ□ψ[pup1, pup2; pdn1, pdn2] * OpL[pdn1, pup1, a] * OpR[a, pdn2, pup2]
-            gate = get_op(gate, para)
-            @tensor tmp = ψ□ψ[pup1, pup2, pdn1, pdn2] * gate[pdn1, pdn2, pup1, pup2]
+            op = get_op(gate, para)
+            @tensor tmp = ψ□ψ[pup1, pup2, pdn1, pdn2] * op[pdn1, pdn2, pup1, pup2]
             Obs_h2site[gate] = vcat(Obs_h2site[gate], [x1, y1, x1, y1 + deltaY, tmp / nrm])
         end
     end
@@ -358,8 +358,8 @@ function Cal_Obs_v(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_en
             #     error("rank of OpL and OpR must be 2 or 3")
             # end
             # @tensor tmp = ψ□ψ[pup1, pup2; pdn1, pdn2] * OpL[pdn1, pup1, a] * OpR[a, pdn2, pup2]
-            gate = get_op(gate, para)
-            @tensor tmp = ψ□ψ[pup1, pup2, pdn1, pdn2] * gate[pdn1, pdn2, pup1, pup2]
+            op = get_op(gate, para)
+            @tensor tmp = ψ□ψ[pup1, pup2, pdn1, pdn2] * op[pdn1, pdn2, pup1, pup2]
             Obs_v2site[gate] = vcat(Obs_v2site[gate], [x1, y1, x1, y1 + deltaY, tmp / nrm])
         end
 
