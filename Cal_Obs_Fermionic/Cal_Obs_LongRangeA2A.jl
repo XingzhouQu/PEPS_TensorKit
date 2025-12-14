@@ -33,7 +33,8 @@ function _pre_compute_v_env!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, v_en
         # 收缩上方环境
         CapUp = _get_toppart(ipeps, ipepsbar, envs, xx, yy)
         # 逐一收缩下方环境
-        for extd in 1:Ry
+        # for extd in 1:Ry
+        for extd in 1:1
             tmp = _shrink_env_tb(envs, xx, yy, CapUp, extd)
             v_env[xx, yy, extd] = tmp
             if extd < Ry
@@ -53,7 +54,8 @@ function _pre_compute_h_env!(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, h_en
         # 收缩左部环境
         CapL = _get_leftpart(ipeps, ipepsbar, envs, xx, yy)
         # 逐一收缩右部环境
-        for extd in 1:Rx
+        # for extd in 1:Rx
+        for extd in 1:1
             tmp = _shrink_env_lr(envs, xx, yy, CapL, extd)
             h_env[xx, yy, extd] = tmp
             if extd < Rx
@@ -185,26 +187,26 @@ function Cal_Obs_2site_long_range(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv,
         end
         GC.gc()
     end
-    # 计算元胞内不在同一行，也不在同一列的关联. 这里逐点计算，暂不考虑过于长程的关联
-    diag_pairs = Set{NTuple{4,Int}}()  # 用集合去掉重复的点对
-    for x1 in 1:Lx, y1 in 1:Ly, x2 in 1:Lx, y2 in 1:Ly
-        if x1 != x2 && y1 != y2
-            p1, p2 = (x1, y1) < (x2, y2) ? ((x1, y1), (x2, y2)) : ((x2, y2), (x1, y1))
-            if p1[1] < p2[1] && p1[2] < p2[2]
-                push!(diag_pairs, (p1[1], p1[2], p2[1], p2[2]))  # 左上、右下
-            else
-                push!(diag_pairs, (p2[1], p2[2], p1[1], p1[2]))  # 右上、左下
-            end
-        end
-    end
-    for (x1, y1, x2, y2) in diag_pairs
-        # scan others. # Obs_diag2site::Dict{String, Matrix{Number}(5列)}
-        Obs_diag2site = Cal_Obs_diag(ipeps, ipepsbar, envs, pre_compute_env, Gates, para, get_op; site=[x1, y1, x2, y2])
-        for gate in Gates
-            rslt[gate] = vcat(rslt[gate], Obs_diag2site[gate])
-        end
-        GC.gc()
-    end
+    # # 计算元胞内不在同一行，也不在同一列的关联. 这里逐点计算，暂不考虑过于长程的关联
+    # diag_pairs = Set{NTuple{4,Int}}()  # 用集合去掉重复的点对
+    # for x1 in 1:Lx, y1 in 1:Ly, x2 in 1:Lx, y2 in 1:Ly
+    #     if x1 != x2 && y1 != y2
+    #         p1, p2 = (x1, y1) < (x2, y2) ? ((x1, y1), (x2, y2)) : ((x2, y2), (x1, y1))
+    #         if p1[1] < p2[1] && p1[2] < p2[2]
+    #             push!(diag_pairs, (p1[1], p1[2], p2[1], p2[2]))  # 左上、右下
+    #         else
+    #             push!(diag_pairs, (p2[1], p2[2], p1[1], p1[2]))  # 右上、左下
+    #         end
+    #     end
+    # end
+    # for (x1, y1, x2, y2) in diag_pairs
+    #     # scan others. # Obs_diag2site::Dict{String, Matrix{Number}(5列)}
+    #     Obs_diag2site = Cal_Obs_diag(ipeps, ipepsbar, envs, pre_compute_env, Gates, para, get_op; site=[x1, y1, x2, y2])
+    #     for gate in Gates
+    #         rslt[gate] = vcat(rslt[gate], Obs_diag2site[gate])
+    #     end
+    #     GC.gc()
+    # end
     # 最后对结果排序
     for gate in Gates
         rslt[gate] = sortslices(rslt[gate], dims=1)
@@ -282,7 +284,7 @@ function Cal_Obs_h(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_en
 end
 
 # 迭代调用此函数，利用 pre_compute_env[x, y, 1] 更新中间部分
-function update_midpart_h!(midpart::Union{nothing,AbstractTensorMap}, pre_compute_env::pre_compute, x1::Int, y1::Int, deltaY::Int)
+function update_midpart_h!(midpart::Union{Nothing,AbstractTensorMap}, pre_compute_env::pre_compute, x1::Int, y1::Int, deltaY::Int)
     if midpart === nothing
         midpart = pre_compute_env.h_env[x1, y1, 1]
     else
@@ -362,7 +364,7 @@ function Cal_Obs_v(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_en
 end
 
 # 迭代调用此函数，利用 pre_compute_env[x, y, 1] 更新中间部分
-function update_midpart_v!(midpart::Union{nothing,AbstractTensorMap}, pre_compute_env::pre_compute, x1::Int, y1::Int, deltaX::Int)
+function update_midpart_v!(midpart::Union{Nothing,AbstractTensorMap}, pre_compute_env::pre_compute, x1::Int, y1::Int, deltaX::Int)
     if midpart === nothing
         midpart = pre_compute_env.v_env[x1, y1, 1]
     else
@@ -373,114 +375,114 @@ function update_midpart_v!(midpart::Union{nothing,AbstractTensorMap}, pre_comput
     return nothing
 end
 
-# 对角的观测量逐点计算
-function Cal_Obs_diag(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_env::pre_compute, Gates::Vector{String}, para::Dict{Symbol,Any}, get_op::Function; site=[1, 1, 2, 2])
-    (x1, y1, x2, y2) = site
-    Obs_diag2site = Dict{String,Matrix}()
-    for gate in Gates
-        Obs_diag2site[gate] = Matrix{Number}(undef, 0, 5)
-    end
-    # 起始张量  
-    M1 = ipeps[x1, y1]
-    M1bar = ipepsbar[x1, y1]
-    M2 = ipeps[x2, y2]
-    M2bar = ipepsbar[x2, y2]
-    midpart = nothing
-    if x2 > x1 && y2 > y1  # 左上到右下的两个点. 这里调用 CTMRG 求环境的函数
-        if x2 == x1 + 1 && y2 == y1 + 1  # 2点为次近邻，直接计算
-            rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, [x1, y1], [x2, y2], get_op; ADflag=false)
-            for gate in Gates
-                Obs_diag2site[gate] = [x1, y1, x2, y2, rslt[gate]]
-            end
-            return Obs_diag2site
-        end
-        # 两点非近邻
-        deltaX = abs(x2 - x1)
-        deltaY = abs(y2 - y1)
-        if deltaX >= deltaY  # X方向延展更多
+# # 对角的观测量逐点计算
+# function Cal_Obs_diag(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, pre_compute_env::pre_compute, Gates::Vector{String}, para::Dict{Symbol,Any}, get_op::Function; site=[1, 1, 2, 2])
+#     (x1, y1, x2, y2) = site
+#     Obs_diag2site = Dict{String,Matrix}()
+#     for gate in Gates
+#         Obs_diag2site[gate] = Matrix{Number}(undef, 0, 5)
+#     end
+#     # 起始张量  
+#     M1 = ipeps[x1, y1]
+#     M1bar = ipepsbar[x1, y1]
+#     M2 = ipeps[x2, y2]
+#     M2bar = ipepsbar[x2, y2]
+#     midpart = nothing
+#     if x2 > x1 && y2 > y1  # 左上到右下的两个点. 这里调用 CTMRG 求环境的函数
+#         if x2 == x1 + 1 && y2 == y1 + 1  # 2点为次近邻，直接计算
+#             rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, [x1, y1], [x2, y2], get_op; ADflag=false)
+#             for gate in Gates
+#                 Obs_diag2site[gate] = [x1, y1, x2, y2, rslt[gate]]
+#             end
+#             return Obs_diag2site
+#         end
+#         # 两点非近邻
+#         deltaX = abs(x2 - x1)
+#         deltaY = abs(y2 - y1)
+#         if deltaX >= deltaY  # X方向延展更多
 
-        else # Y方向延展更多
+#         else # Y方向延展更多
 
-        end
-        QuR = get_QuR(ipeps, ipepsbar, envs, x2, y1)  # [lχ, lupD, ldnD; bχ, bupD, bdnD]
-        QdL = get_QdL(ipeps, ipepsbar, envs, x1, y2)  # [tχ, tupD, tdnD; rχ, rupD, rdnD]
-        gatelt1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
-        gatelt2 = swap_gate(space(M1)[3], space(M1)[5]; Eltype=eltype(M1))
-        gatelt3 = swap_gate(space(gatelt2)[1], space(QuR)[3]; Eltype=eltype(M1))
-        gatelt4 = swap_gate(space(gatelt2)[2], space(gatelt3)[2]; Eltype=eltype(M1))
-        gatelt5 = swap_gate(space(M1bar)[3], space(M1bar)[4]; Eltype=eltype(M1))
-        gatelt6 = swap_gate(space(gatelt5)[1], space(gatelt4)[1]; Eltype=eltype(M1))
-        gaterb6 = swap_gate(space(M2)[5], space(M2bar)[4]; Eltype=eltype(M1))
-        gaterb5 = swap_gate(space(M2bar)[2], space(M2bar)[3]; Eltype=eltype(M1))
-        gaterb4 = swap_gate(space(QdL)[5], space(gaterb5)[2]; Eltype=eltype(M1))
-        gaterb3 = swap_gate(space(gaterb4)[1], space(gaterb5)[1]; Eltype=eltype(M1))
-        gaterb2 = swap_gate(space(M2)[1], space(M2)[3]; Eltype=eltype(M1))
-        gaterb1 = swap_gate(space(QuR)[6], space(gaterb2)[2]; Eltype=eltype(M1))
-        @tensor opt = true QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
-            envs[x1, y1].transfer.t[rχin, rχ, bupDin, rupD] * envs[x1, y1].corner.lt[rχin, bχin] *
-            envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * gatelt1[rupDin, rupD, rupDin2, rupDin3] *
-            M1[rupDin2, bupDin, pup1in, rupMD, bupMDin] * gatelt2[pup1in2, bupMDin2, pup1in, bupMDin] *
-            gatelt3[pup1, rdnMDin2, pup1in2, rdnMD] * gatelt4[bupMDin3, rdnMDin, bupMDin2, rdnMDin2] *
-            gatelt5[pdn1in2, rdnMDin, pdn1in, rdnMDin3] * M1bar[rdnD, rupDin3, pdn1in, rdnMDin3, bdnMD] *
-            gatelt6[pdn1, bupMD, pdn1in2, bupMDin3]
-        @tensor opt = true QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
-            envs[x2, y2].corner.rb[lχin, tχin] * envs[x2, y2].transfer.r[lupMDin, ldnDin, tχ, tχin] *
-            envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * gaterb6[tupDin, ldnDin, tupDin2, ldnDin2] *
-            M2bar[ldnD, tdnDin2, pdn4in, ldnDin2, tdnDin] * gaterb5[tdnDin3, pdn4in2, tdnDin2, pdn4in] *
-            M2[lupDin3, tupD, pup4in, lupMDin, tupDin2] * gaterb2[lupDin, pup4in2, lupDin3, pup4in] *
-            gaterb3[lupDin, tdnDin4, lupDin2, tdnDin3] * gaterb4[lupDin2, pdn4, lupD, pdn4in2] *
-            gaterb1[tdnDin4, pup4, tdnD, pup4in2]
-        @tensor opt = true ψ□ψ[pup1, pup4; pdn1, pdn4] :=
-            QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
-            QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
-        @tensor nrm = ψ□ψ[p1, p2, p1, p2]
-    elseif x2 < x1 && y2 > y1  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
-        if x2 == x1 - 1 && y2 == y1 + 1  # 2点为次近邻，直接计算
-            rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, [x1, y1], [x2, y2], get_op; ADflag=false)
-            for gate in Gates
-                Obs_diag2site[gate] = [x1, y1, x2, y2, rslt[gate]]
-            end
-            return Obs_diag2site
-        end
-        QuL = get_QuL(ipeps, ipepsbar, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
-        QdR = get_QdR(ipeps, ipepsbar, envs, x1, y2)  # [lχ, lupD, ldnD, tχ, tupD, tdnD]
-        gatelb1 = swap_gate(space(M2)[1], space(M2bar)[2]; Eltype=eltype(M1))
-        gatelb4 = swap_gate(space(M2)[3], space(M2)[5]; Eltype=eltype(M1))
-        gatelb2 = swap_gate(space(M2)[4], space(gatelb4)[1]; Eltype=eltype(M1))
-        gatelb5 = swap_gate(space(M2bar)[3], space(gatelb4)[2]; Eltype=eltype(M1))
-        gatelb3 = swap_gate(space(gatelb2)[1], space(gatelb5)[1]; Eltype=eltype(M1))
-        gatelb6 = swap_gate(space(M2bar)[4], space(gatelb5)[2]; Eltype=eltype(M1))
-        gatert6 = swap_gate(space(M1)[5], space(M1bar)[4]; Eltype=eltype(M1))
-        gatert3 = swap_gate(space(M1bar)[3], space(M1bar)[2]; Eltype=eltype(M1))
-        gatert5 = swap_gate(space(M1bar)[1], space(gatert3)[1]; Eltype=eltype(M1))
-        gatert2 = swap_gate(space(M1)[3], space(gatert3)[2]; Eltype=eltype(M1))
-        gatert1 = swap_gate(space(M1)[1], space(gatert2)[2]; Eltype=eltype(M1))
-        gatert4 = swap_gate(space(gatert2)[1], space(gatert5)[1]; Eltype=eltype(M1))
-        @tensor opt = true QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
-            envs[x1, y1].corner.rt[lχin, bχin] * envs[x1, y1].transfer.t[lχ, lχin, bupDin, bdnDin] *
-            envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * M1[lupDin2, bupDin, pup2in, lupDin, bupDin2] *
-            gatert1[lupD, bdnDin, lupDin2, bdnDin4] * gatert6[bupD, ldnDin, bupDin2, ldnDin2] *
-            M1bar[ldnDin3, bdnDin2, pdn2in, ldnDin2, bdnD] * gatert2[pup2in2, bdnDin4, pup2in, bdnDin3] *
-            gatert3[pdn2in2, bdnDin3, pdn2in, bdnDin2] * gatert5[ldnDin4, pdn2, ldnDin3, pdn2in2] *
-            gatert4[pup2, ldnD, pup2in2, ldnDin4]
-        @tensor opt = true QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
-            envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
-            envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * gatelb1[rupDin, tdnD, rupDin2, tdnDin2] *
-            M2bar[rdnDin, tdnDin2, pdn3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pup3in, rupDin3, tupDin2] *
-            gatelb4[pup3in2, tupDin3, pup3in, tupDin2] * gatelb2[rupDin4, pup3, rupDin3, pup3in2] *
-            gatelb6[rdnD, tupDin, rdnDin2, tupDin4] * gatelb5[pdn3in2, tupDin4, pdn3in, tupDin3] *
-            gatelb3[rupD, pdn3, rupDin4, pdn3in2]
-        @tensor opt = true ψ□ψ[pup2, pup3; pdn2, pdn3] :=
-            QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
-            QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
+#         end
+#         QuR = get_QuR(ipeps, ipepsbar, envs, x2, y1)  # [lχ, lupD, ldnD; bχ, bupD, bdnD]
+#         QdL = get_QdL(ipeps, ipepsbar, envs, x1, y2)  # [tχ, tupD, tdnD; rχ, rupD, rdnD]
+#         gatelt1 = swap_gate(space(M1)[1], space(M1bar)[2]; Eltype=eltype(M1))
+#         gatelt2 = swap_gate(space(M1)[3], space(M1)[5]; Eltype=eltype(M1))
+#         gatelt3 = swap_gate(space(gatelt2)[1], space(QuR)[3]; Eltype=eltype(M1))
+#         gatelt4 = swap_gate(space(gatelt2)[2], space(gatelt3)[2]; Eltype=eltype(M1))
+#         gatelt5 = swap_gate(space(M1bar)[3], space(M1bar)[4]; Eltype=eltype(M1))
+#         gatelt6 = swap_gate(space(gatelt5)[1], space(gatelt4)[1]; Eltype=eltype(M1))
+#         gaterb6 = swap_gate(space(M2)[5], space(M2bar)[4]; Eltype=eltype(M1))
+#         gaterb5 = swap_gate(space(M2bar)[2], space(M2bar)[3]; Eltype=eltype(M1))
+#         gaterb4 = swap_gate(space(QdL)[5], space(gaterb5)[2]; Eltype=eltype(M1))
+#         gaterb3 = swap_gate(space(gaterb4)[1], space(gaterb5)[1]; Eltype=eltype(M1))
+#         gaterb2 = swap_gate(space(M2)[1], space(M2)[3]; Eltype=eltype(M1))
+#         gaterb1 = swap_gate(space(QuR)[6], space(gaterb2)[2]; Eltype=eltype(M1))
+#         @tensor opt = true QuL[(pup1); (pdn1, rχ, rupMD, rdnMD, bχ, bupMD, bdnMD)] :=
+#             envs[x1, y1].transfer.t[rχin, rχ, bupDin, rupD] * envs[x1, y1].corner.lt[rχin, bχin] *
+#             envs[x1, y1].transfer.l[bχin, bχ, rupDin, rdnD] * gatelt1[rupDin, rupD, rupDin2, rupDin3] *
+#             M1[rupDin2, bupDin, pup1in, rupMD, bupMDin] * gatelt2[pup1in2, bupMDin2, pup1in, bupMDin] *
+#             gatelt3[pup1, rdnMDin2, pup1in2, rdnMD] * gatelt4[bupMDin3, rdnMDin, bupMDin2, rdnMDin2] *
+#             gatelt5[pdn1in2, rdnMDin, pdn1in, rdnMDin3] * M1bar[rdnD, rupDin3, pdn1in, rdnMDin3, bdnMD] *
+#             gatelt6[pdn1, bupMD, pdn1in2, bupMDin3]
+#         @tensor opt = true QdR[(lχ, lupD, ldnD, tχ, tupD, tdnD, pup4); (pdn4)] :=
+#             envs[x2, y2].corner.rb[lχin, tχin] * envs[x2, y2].transfer.r[lupMDin, ldnDin, tχ, tχin] *
+#             envs[x2, y2].transfer.b[lχ, tupDin, tdnDin, lχin] * gaterb6[tupDin, ldnDin, tupDin2, ldnDin2] *
+#             M2bar[ldnD, tdnDin2, pdn4in, ldnDin2, tdnDin] * gaterb5[tdnDin3, pdn4in2, tdnDin2, pdn4in] *
+#             M2[lupDin3, tupD, pup4in, lupMDin, tupDin2] * gaterb2[lupDin, pup4in2, lupDin3, pup4in] *
+#             gaterb3[lupDin, tdnDin4, lupDin2, tdnDin3] * gaterb4[lupDin2, pdn4, lupD, pdn4in2] *
+#             gaterb1[tdnDin4, pup4, tdnD, pup4in2]
+#         @tensor opt = true ψ□ψ[pup1, pup4; pdn1, pdn4] :=
+#             QuL[pup1, pdn1, rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
+#             QdL[bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2, pup4, pdn4]
+#         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
+#     elseif x2 < x1 && y2 > y1  # 右上到左下的两个点.  这里调用 CTMRG 求环境的函数
+#         if x2 == x1 - 1 && y2 == y1 + 1  # 2点为次近邻，直接计算
+#             rslt = _2siteObs_diagSite(ipeps, ipepsbar, envs, Gates, para, [x1, y1], [x2, y2], get_op; ADflag=false)
+#             for gate in Gates
+#                 Obs_diag2site[gate] = [x1, y1, x2, y2, rslt[gate]]
+#             end
+#             return Obs_diag2site
+#         end
+#         QuL = get_QuL(ipeps, ipepsbar, envs, x2, y1)  # [rχ, rupMD, rdnMD, bχ, bupMD, bdnMD]
+#         QdR = get_QdR(ipeps, ipepsbar, envs, x1, y2)  # [lχ, lupD, ldnD, tχ, tupD, tdnD]
+#         gatelb1 = swap_gate(space(M2)[1], space(M2bar)[2]; Eltype=eltype(M1))
+#         gatelb4 = swap_gate(space(M2)[3], space(M2)[5]; Eltype=eltype(M1))
+#         gatelb2 = swap_gate(space(M2)[4], space(gatelb4)[1]; Eltype=eltype(M1))
+#         gatelb5 = swap_gate(space(M2bar)[3], space(gatelb4)[2]; Eltype=eltype(M1))
+#         gatelb3 = swap_gate(space(gatelb2)[1], space(gatelb5)[1]; Eltype=eltype(M1))
+#         gatelb6 = swap_gate(space(M2bar)[4], space(gatelb5)[2]; Eltype=eltype(M1))
+#         gatert6 = swap_gate(space(M1)[5], space(M1bar)[4]; Eltype=eltype(M1))
+#         gatert3 = swap_gate(space(M1bar)[3], space(M1bar)[2]; Eltype=eltype(M1))
+#         gatert5 = swap_gate(space(M1bar)[1], space(gatert3)[1]; Eltype=eltype(M1))
+#         gatert2 = swap_gate(space(M1)[3], space(gatert3)[2]; Eltype=eltype(M1))
+#         gatert1 = swap_gate(space(M1)[1], space(gatert2)[2]; Eltype=eltype(M1))
+#         gatert4 = swap_gate(space(gatert2)[1], space(gatert5)[1]; Eltype=eltype(M1))
+#         @tensor opt = true QuR[pup2, pdn2, lχ, lupD, ldnD; bχ, bupD, bdnD] :=
+#             envs[x1, y1].corner.rt[lχin, bχin] * envs[x1, y1].transfer.t[lχ, lχin, bupDin, bdnDin] *
+#             envs[x1, y1].transfer.r[lupDin, ldnDin, bχin, bχ] * M1[lupDin2, bupDin, pup2in, lupDin, bupDin2] *
+#             gatert1[lupD, bdnDin, lupDin2, bdnDin4] * gatert6[bupD, ldnDin, bupDin2, ldnDin2] *
+#             M1bar[ldnDin3, bdnDin2, pdn2in, ldnDin2, bdnD] * gatert2[pup2in2, bdnDin4, pup2in, bdnDin3] *
+#             gatert3[pdn2in2, bdnDin3, pdn2in, bdnDin2] * gatert5[ldnDin4, pdn2, ldnDin3, pdn2in2] *
+#             gatert4[pup2, ldnD, pup2in2, ldnDin4]
+#         @tensor opt = true QdL[pup3, pdn3, tχ, tupD, tdnD; rχ, rupD, rdnD] :=
+#             envs[x2, y2].corner.lb[tχin, rχin] * envs[x2, y2].transfer.l[tχ, tχin, rupDin, rdnDin] *
+#             envs[x2, y2].transfer.b[rχin, tupDin, tdnDin, rχ] * gatelb1[rupDin, tdnD, rupDin2, tdnDin2] *
+#             M2bar[rdnDin, tdnDin2, pdn3in, rdnDin2, tdnDin] * M2[rupDin2, tupD, pup3in, rupDin3, tupDin2] *
+#             gatelb4[pup3in2, tupDin3, pup3in, tupDin2] * gatelb2[rupDin4, pup3, rupDin3, pup3in2] *
+#             gatelb6[rdnD, tupDin, rdnDin2, tupDin4] * gatelb5[pdn3in2, tupDin4, pdn3in, tupDin3] *
+#             gatelb3[rupD, pdn3, rupDin4, pdn3in2]
+#         @tensor opt = true ψ□ψ[pup2, pup3; pdn2, pdn3] :=
+#             QuL[rχ1, rupD1, rdnD1, bχ1, bupD1, bdnD1] * QuR[pup2, pdn2, rχ1, rupD1, rdnD1, bχ2, bupD2, bdnD2] *
+#             QdL[pup3, pdn3, bχ1, bupD1, bdnD1, rχ3, rupD3, rdnD3] * QdR[rχ3, rupD3, rdnD3, bχ2, bupD2, bdnD2]
 
-        @tensor nrm = ψ□ψ[p1, p2, p1, p2]
-    else
-        error("check input sites")
-    end
+#         @tensor nrm = ψ□ψ[p1, p2, p1, p2]
+#     else
+#         error("check input sites")
+#     end
 
 
-end
+# end
 
 
 # 计算单点观测量
@@ -504,8 +506,8 @@ function Cal_Obs_onsite(ipeps::iPEPS, ipepsbar::iPEPS, envs::iPEPSenv, Gates::Ve
 
     Obs_onsite = Dict{String,Number}()
     for gate in Gates
-        OpL, OpR = get_op(gate, para; Nop=2)
-        @tensor OnsiteOp[pdn, pup] := OpL[pdn, pin, a] * OpR[a, pin, pup]
+        OnsiteOp = get_op(gate, para)
+        # @tensor OnsiteOp[pdn, pup] := OpL[pdn, pin, a] * OpR[a, pin, pup]
         @tensor val = ψ□ψ[pup, pdn] * OnsiteOp[pdn, pup]
         Obs_onsite[gate] = val / nrm
     end
